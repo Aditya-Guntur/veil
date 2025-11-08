@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "src/mempool_chess_backend"
+]
+resolver = "2"
