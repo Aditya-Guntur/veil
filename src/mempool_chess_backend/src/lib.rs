@@ -7,6 +7,8 @@ use serde::Deserialize;
 use std::borrow::Cow;
 use std::cell::RefCell;
 
+mod auction;
+
 
 // --- 1. TYPES & STRUCTS (Our Data Definitions) ---
 
@@ -204,6 +206,33 @@ fn get_round_state() -> State {
 fn get_order_count() -> u64 {
     ORDERS.with(|orders| orders.borrow().len())
 }
+
+/// (Helper) Runs the clearing algorithm on the current set of orders.
+#[update]
+fn admin_run_clearing() -> String {
+    STATE.with(|s| {
+        s.borrow_mut().round_state = RoundState::Revealing;
+    });
+
+    match auction::find_clearing_price() {
+        Ok(result) => {
+            STATE.with(|s| {
+                s.borrow_mut().round_state = RoundState::Executing;
+            });
+            format!(
+                "Clearing successful! Price: {}, Volume: {}",
+                result.clearing_price, result.buy_volume
+            )
+        }
+        Err(e) => {
+            STATE.with(|s| {
+                s.borrow_mut().round_state = RoundState::Pending; // Reset for next try
+            });
+            format!("Clearing failed: {}", e)
+        }
+    }
+}
+
 
 // --- 4. CANDID EXPORT ---
 // This generates the .did file for our frontend to talk to

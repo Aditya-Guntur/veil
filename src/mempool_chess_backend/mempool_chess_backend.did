@@ -10,6 +10,8 @@ type State = record {
   round_duration_ns : nat64;
 };
 service : {
+  // (Helper) Runs the clearing algorithm on the current set of orders.
+  admin_run_clearing : () -> (text);
   // (Helper) Manually starts a new round.
   // We need this for testing Days 1-2.
   admin_start_round : () -> (text);
