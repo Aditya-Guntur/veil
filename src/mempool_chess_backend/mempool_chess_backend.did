@@ -10,16 +10,9 @@ type State = record {
   round_duration_ns : nat64;
 };
 service : {
-  // (Helper) Runs the clearing algorithm on the current set of orders.
   admin_run_clearing : () -> (text);
-  // (Helper) Manually starts a new round.
-  // We need this for testing Days 1-2.
   admin_start_round : () -> (text);
-  // (Helper) Gets the number of orders in the current round.
   get_order_count : () -> (nat64) query;
-  // (Helper) Gets the current round state.
   get_round_state : () -> (State) query;
-  // Submits a new order to the current active round.
-  // This is the function the user's frontend will call.
   submit_order : (OrderType, Asset, nat64, nat64, blob) -> (Result);
 }
