@@ -1,6 +1,15 @@
 type Asset = variant { BTC; ETH; ICP };
+type GetUtxosResponse = record {
+  next_page : opt blob;
+  tip_height : nat32;
+  tip_block_hash : blob;
+  utxos : vec Utxo;
+};
 type OrderType = variant { Buy; Sell };
-type Result = variant { Ok : nat64; Err : text };
+type Outpoint = record { txid : blob; vout : nat32 };
+type Result = variant { Ok : text; Err : text };
+type Result_1 = variant { Ok : GetUtxosResponse; Err : text };
+type Result_2 = variant { Ok : nat64; Err : text };
 type RoundState = variant { Active; Executing; Revealing; Pending };
 type State = record {
   round_start_time : nat64;
@@ -9,10 +18,17 @@ type State = record {
   round_id : nat64;
   round_duration_ns : nat64;
 };
+type Utxo = record { height : nat32; value : nat64; outpoint : Outpoint };
 service : {
   admin_run_clearing : () -> (text);
   admin_start_round : () -> (text);
+  get_btc_address : () -> (Result);
+  get_eth_address : () -> (Result);
   get_order_count : () -> (nat64) query;
   get_round_state : () -> (State) query;
-  submit_order : (OrderType, Asset, nat64, nat64, blob) -> (Result);
+  get_utxos : (text) -> (Result_1);
+  sign_eth_transaction : (nat64, text, nat64, blob, nat64, nat64, nat64) -> (
+      Result,
+    );
+  submit_order : (OrderType, Asset, nat64, nat64, blob) -> (Result_2);
 }
