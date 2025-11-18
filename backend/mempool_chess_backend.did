@@ -1,0 +1,246 @@
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+type Asset = variant {
+    BTC;
+    ETH;
+};
+
+type OrderType = variant {
+    Buy;
+    Sell;
+};
+
+type RoundState = variant {
+    Pending;
+    Active;
+    Revealing;
+    Clearing;
+    Executing;
+    Completed;
+};
+
+type Order = record {
+    id: nat64;
+    round_id: nat64;
+    owner: principal;
+    order_type: OrderType;
+    asset: Asset;
+    amount: nat64;
+    price_limit: nat64;
+    created_at: nat64;
+    encrypted_payload: blob;
+    commitment_hash: text;
+};
+
+type OrderMatch = record {
+    order_id: nat64;
+    filled: bool;
+    fill_amount: nat64;
+    fill_price: nat64;
+    surplus: nat64;
+};
+
+type ClearingResult = record {
+    round_id: nat64;
+    clearing_price: nat64;
+    total_volume: nat64;
+    total_surplus: nat64;
+    matches: vec OrderMatch;
+    timestamp: nat64;
+};
+
+type State = record {
+    round_id: nat64;
+    round_state: RoundState;
+    round_start_time: nat64;
+    round_duration_ns: nat64;
+    next_order_id: nat64;
+    clearing_price_history: vec nat64;
+};
+
+type UserStats = record {
+    user: principal;
+    total_orders: nat64;
+    filled_orders: nat64;
+    total_surplus: nat64;
+    rounds_participated: nat64;
+};
+
+type LeaderboardEntry = record {
+    user: principal;
+    surplus: nat64;
+    fill_rate: nat64;
+    rank: nat64;
+};
+
+type OrderBookSummary = record {
+    round_id: nat64;
+    buy_orders: nat64;
+    sell_orders: nat64;
+    total_buy_volume: nat64;
+    total_sell_volume: nat64;
+};
+
+type PlatformStats = record {
+    total_orders: nat64;
+    total_rounds: nat64;
+    total_users: nat64;
+    total_volume: nat64;
+    total_surplus: nat64;
+};
+
+// Bitcoin types
+type Outpoint = record {
+    txid: blob;
+    vout: nat32;
+};
+
+type Utxo = record {
+    outpoint: Outpoint;
+    value: nat64;
+    height: nat32;
+};
+
+type GetUtxosResponse = record {
+    utxos: vec Utxo;
+    tip_block_hash: blob;
+    tip_height: nat32;
+    next_page: opt blob;
+};
+
+// Result types
+type Result = variant {
+    Ok: text;
+    Err: text;
+};
+
+type ResultOrder = variant {
+    Ok: nat64;
+    Err: text;
+};
+
+type ResultStats = variant {
+    Ok: UserStats;
+    Err: text;
+};
+
+type ResultClearingResult = variant {
+    Ok: ClearingResult;
+    Err: text;
+};
+
+type ResultUtxos = variant {
+    Ok: GetUtxosResponse;
+    Err: text;
+};
+
+type ResultBalance = variant {
+    Ok: nat64;
+    Err: text;
+};
+
+type ResultBytes = variant {
+    Ok: blob;
+    Err: text;
+};
+
+// ============================================================================
+// SERVICE INTERFACE
+// ============================================================================
+
+service : {
+    // ========================================================================
+    // INITIALIZATION & STATE
+    // ========================================================================
+    
+    "get_round_state": () -> (State) query;
+    "get_order_count": () -> (nat64) query;
+    "get_current_round_orders": () -> (nat64) query;
+    "get_time_remaining": () -> (nat64) query;
+    
+    // ========================================================================
+    // ORDER SUBMISSION
+    // ========================================================================
+    
+    "submit_order": (
+        OrderType,      // order_type
+        Asset,          // asset
+        nat64,          // amount
+        nat64,          // price_limit
+        blob,           // encrypted_payload
+        text            // commitment_hash
+    ) -> (ResultOrder);
+    
+    "get_encryption_public_key": () -> (ResultBytes);
+    
+    // ========================================================================
+    // ROUND MANAGEMENT (Admin)
+    // ========================================================================
+    
+    "admin_start_round": () -> (text);
+    "admin_run_clearing": () -> (text);
+    "admin_reset_round": () -> (text);
+    
+    // ========================================================================
+    // USER QUERIES
+    // ========================================================================
+    
+    "get_user_orders": (principal) -> (vec Order) query;
+    "get_user_current_round_orders": (principal) -> (vec Order) query;
+    "get_user_stats": (principal) -> (opt UserStats) query;
+    "get_user_round_surplus": (principal, nat64) -> (nat64) query;
+    
+    // ========================================================================
+    // ROUND QUERIES
+    // ========================================================================
+    
+    "get_round_result": (nat64) -> (opt ClearingResult) query;
+    "get_current_round_result": () -> (opt ClearingResult) query;
+    "get_round_orders": (nat64) -> (vec Order) query;
+    "get_price_history": () -> (vec nat64) query;
+    "get_recent_prices": (nat64) -> (vec nat64) query;
+    
+    // ========================================================================
+    // LEADERBOARD QUERIES
+    // ========================================================================
+    
+    "get_round_leaderboard": (nat64) -> (vec LeaderboardEntry) query;
+    "get_global_leaderboard": () -> (vec LeaderboardEntry) query;
+    "get_top_players": (nat64) -> (vec LeaderboardEntry) query;
+    
+    // ========================================================================
+    // ORDER BOOK QUERIES
+    // ========================================================================
+    
+    "get_order_book_summary": () -> (OrderBookSummary) query;
+    "get_platform_stats": () -> (PlatformStats) query;
+    
+    // ========================================================================
+    // TIMER MANAGEMENT
+    // ========================================================================
+    
+    "stop_round_timer": () -> (text);
+    "force_progress_round": () -> (text);
+    "set_round_duration": (nat64) -> (text);
+    
+    // ========================================================================
+    // BITCOIN FUNCTIONS
+    // ========================================================================
+    
+    "get_btc_address": () -> (Result);
+    "get_utxos": (text) -> (ResultUtxos);
+    "get_balance": () -> (ResultBalance);
+    "execute_btc_settlement": (int64, text) -> (Result);
+    "send_test_btc": (text, nat64) -> (Result);
+    
+    // ========================================================================
+    // ETHEREUM FUNCTIONS
+    // ========================================================================
+    
+    "get_eth_address": () -> (Result);
+    "execute_eth_settlement": (int64) -> (Result);
+    "send_test_eth": (text, nat64) -> (Result);
+    "build_uniswap_swap": (nat64, nat64) -> (Result);
+}

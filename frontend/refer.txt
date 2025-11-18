@@ -1,0 +1,83 @@
+UI PALETTE & DESIGN SYSTEM (CLEAN COPY-PASTE FORMAT)
+
+BACKGROUND & SURFACES
+- background-primary: #0D0D12
+- background-elevated: #161621
+- background-glass: rgba(22,22,33,0.55)
+- border-default: #2A2A3C
+
+PRIMARY BRAND COLORS
+- primary: #5B4BCE
+- primary-hover: #7668F4
+
+ACCENT COLORS
+- accent: #24D7A6
+- accent-hover: #3BF3BD
+
+SUPPORTING COLORS
+- purple: #8E5DEB
+- cyan: #38CFF2
+
+TEXT COLORS
+- text-main: #FFFFFF
+- text-secondary: #A8A8B8
+- text-disabled: #666678
+
+GRADIENTS
+- gradient-main: linear-gradient(90deg, #5B4BCE, #8E5DEB, #24D7A6)
+- gradient-secondary: linear-gradient(90deg, #7668F4, #38CFF2)
+
+BUTTON STYLES
+primary-button:
+  background: #5B4BCE
+  hover: #7668F4
+  glow: rgba(36,215,166,0.35)
+
+secondary-button:
+  border: #8E5DEB
+  text: #8E5DEB
+  hover-border: #38CFF2
+
+CARD STYLE
+card-background: #161621
+card-border: #2A2A3C
+card-hover-border: gradient-secondary
+
+INPUT FIELDS
+input-background: #161621
+input-border: #2A2A3C
+input-focus-ring: #24D7A6
+
+PARTICLES / ANIMATED BG COLORS
+- #5B4BCE
+- #8E5DEB
+- #38CFF2
+- #24D7A6
+
+LAYOUT GUIDELINES
+- container-padding: 24–32px
+- card-radius: 12–16px
+- button-radius: 8–10px
+- avoid multiple glows: max 1 glow layer
+- gradients: max 2–3 colors
+- neon usage: accents only
+
+TAILWIND THEME EXTEND (PASTE DIRECTLY)
+{
+  extend: {
+    colors: {
+      veil: {
+        dark: "#0D0D12",
+        darker: "#161621",
+        card: "#161621",
+        primary: "#5B4BCE",
+        primaryHover: "#7668F4",
+        accent: "#24D7A6",
+        accentHover: "#3BF3BD",
+        purple: "#8E5DEB",
+        cyan: "#38CFF2",
+        border: "#2A2A3C"
+      }
+    }
+  }
+}

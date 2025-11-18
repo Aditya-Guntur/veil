@@ -1,0 +1,405 @@
+use bitcoin::{
+    address::NetworkChecked,
+    hashes::Hash,
+    key::Secp256k1,
+    psbt::serialize::Serialize,
+    Address as BtcAddress, Network as BtcNetwork, OutPoint, PublicKey as BtcPublicKey,
+    ScriptBuf, Sequence, Transaction, TxIn, TxOut, Witness, XOnlyPublicKey,
+};
+use ic_cdk::api::management_canister::bitcoin::{
+    BitcoinNetwork, GetUtxosRequest, GetUtxosResponse, Outpoint, SendTransactionRequest, Utxo,
+};
+use ic_cdk::api::management_canister::main::CanisterId;
+
+// Schnorr imports for threshold signatures
+use ic_cdk::api::call::CallResult;
+
+const DEFAULT_DERIVATION_PATH: Vec<Vec<u8>> = vec![];
+
+// Bitcoin testnet for development
+const NETWORK: BitcoinNetwork = BitcoinNetwork::Testnet;
+const BTC_NETWORK: BtcNetwork = BtcNetwork::Testnet;
+
+// ============================================================================
+// SCHNORR KEY MANAGEMENT
+// ============================================================================
+
+fn get_schnorr_key_id() -> ic_cdk::api::management_canister::schnorr::SchnorrKeyId {
+    ic_cdk::api::management_canister::schnorr::SchnorrKeyId {
+        algorithm: ic_cdk::api::management_canister::schnorr::SchnorrAlgorithm::Bip340Secp256k1,
+        name: "dfx_test_key".to_string(), // Use test key for local development
+    }
+}
+
+async fn get_schnorr_public_key() -> Result<Vec<u8>, String> {
+    use ic_cdk::api::management_canister::schnorr::{
+        SchnorrPublicKeyArgument, SchnorrPublicKeyResponse,
+    };
+
+    let request = SchnorrPublicKeyArgument {
+        canister_id: None,
+        derivation_path: DEFAULT_DERIVATION_PATH.clone(),
+        key_id: get_schnorr_key_id(),
+    };
+
+    let (response,): (SchnorrPublicKeyResponse,) = ic_cdk::call(
+        CanisterId::management_canister(),
+        "schnorr_public_key",
+        (request,),
+    )
+    .await
+    .map_err(|(code, msg)| format!("Failed to get Schnorr public key: {} ({:?})", msg, code))?;
+
+    Ok(response.public_key)
+}
+
+// ============================================================================
+// ADDRESS GENERATION
+// ============================================================================
+
+/// Get our canister's Bitcoin P2TR (Taproot) address
+#[ic_cdk_macros::update]
+pub async fn get_btc_address() -> Result<String, String> {
+    ic_cdk::println!("Generating Bitcoin Taproot address...");
+
+    // Get the 33-byte Schnorr public key
+    let pub_key_bytes = get_schnorr_public_key().await?;
+
+    ic_cdk::println!("Got public key: {} bytes", pub_key_bytes.len());
+
+    // Parse as x-only public key (skip first byte if it's 33 bytes)
+    let x_only_bytes = if pub_key_bytes.len() == 33 {
+        &pub_key_bytes[1..] // Skip the first byte (0x02 or 0x03 prefix)
+    } else {
+        &pub_key_bytes[..]
+    };
+
+    let x_only_key = XOnlyPublicKey::from_slice(x_only_bytes)
+        .map_err(|e| format!("Failed to parse x-only key: {}", e))?;
+
+    // Create Secp256k1 context
+    let secp = Secp256k1::new();
+
+    // Create P2TR (Taproot) address
+    let address = BtcAddress::p2tr(&secp, x_only_key, None, BTC_NETWORK);
+
+    ic_cdk::println!("Generated address: {}", address);
+
+    Ok(address.to_string())
+}
+
+// ============================================================================
+// UTXO MANAGEMENT
+// ============================================================================
+
+/// Get UTXOs for a given address
+#[ic_cdk_macros::update]
+pub async fn get_utxos(address: String) -> Result<GetUtxosResponse, String> {
+    ic_cdk::println!("Fetching UTXOs for address: {}", address);
+
+    let request = GetUtxosRequest {
+        address: address.clone(),
+        network: NETWORK,
+        filter: None,
+    };
+
+    let (response,): (GetUtxosResponse,) = ic_cdk::call(
+        CanisterId::management_canister(),
+        "bitcoin_get_utxos",
+        (request,),
+    )
+    .await
+    .map_err(|(code, msg)| format!("Failed to get UTXOs: {} ({:?})", msg, code))?;
+
+    ic_cdk::println!("Found {} UTXOs for {}", response.utxos.len(), address);
+
+    Ok(response)
+}
+
+/// Get balance for our canister's address
+#[ic_cdk_macros::update]
+pub async fn get_balance() -> Result<u64, String> {
+    let address = get_btc_address().await?;
+    let utxos_response = get_utxos(address).await?;
+
+    let total_balance: u64 = utxos_response.utxos.iter().map(|utxo| utxo.value).sum();
+
+    ic_cdk::println!("Total balance: {} satoshis", total_balance);
+
+    Ok(total_balance)
+}
+
+// ============================================================================
+// TRANSACTION BUILDING
+// ============================================================================
+
+/// Build a Bitcoin transaction to settle the batch auction
+/// net_position: positive = need to buy BTC, negative = need to sell BTC
+pub async fn build_settlement_transaction(
+    net_position: i64, // in satoshis
+    recipient_address: String,
+    fee_per_vbyte: u64,
+) -> Result<Transaction, String> {
+    ic_cdk::println!(
+        "Building Bitcoin settlement transaction. Net position: {} sats",
+        net_position
+    );
+
+    // Get our address
+    let our_address = get_btc_address().await?;
+
+    // Get our UTXOs
+    let utxos_response = get_utxos(our_address.clone()).await?;
+
+    if utxos_response.utxos.is_empty() {
+        return Err("No UTXOs available to build transaction".to_string());
+    }
+
+    // Parse recipient address
+    let recipient: BtcAddress<NetworkChecked> = recipient_address
+        .parse()
+        .map_err(|e| format!("Invalid recipient address: {}", e))?;
+
+    // Calculate amounts
+    let amount_to_send = if net_position > 0 {
+        // We need to buy - this would be handled by external liquidity
+        // For now, just send a test amount
+        10_000u64 // 10k sats
+    } else {
+        net_position.abs() as u64
+    };
+
+    // Select UTXOs (simple: use the first one that's big enough)
+    let mut selected_utxos = Vec::new();
+    let mut total_input = 0u64;
+
+    for utxo in &utxos_response.utxos {
+        selected_utxos.push(utxo.clone());
+        total_input += utxo.value;
+
+        // Rough estimate: need amount + fee
+        let estimated_fee = 1000u64; // ~1000 sats for a simple tx
+        if total_input >= amount_to_send + estimated_fee {
+            break;
+        }
+    }
+
+    if total_input < amount_to_send {
+        return Err(format!(
+            "Insufficient funds: have {} sats, need {} sats",
+            total_input, amount_to_send
+        ));
+    }
+
+    // Build transaction inputs
+    let inputs: Vec<TxIn> = selected_utxos
+        .iter()
+        .map(|utxo| TxIn {
+            previous_output: OutPoint {
+                txid: bitcoin::Txid::from_slice(&utxo.outpoint.txid)
+                    .expect("Invalid txid"),
+                vout: utxo.outpoint.vout,
+            },
+            script_sig: ScriptBuf::new(),
+            sequence: Sequence::ENABLE_RBF_NO_LOCKTIME,
+            witness: Witness::new(),
+        })
+        .collect();
+
+    // Calculate fee (rough estimate)
+    let tx_size = 200 + (inputs.len() * 150); // Very rough estimate
+    let fee = (tx_size as u64) * fee_per_vbyte;
+
+    let change = total_input.saturating_sub(amount_to_send + fee);
+
+    // Build outputs
+    let mut outputs = vec![TxOut {
+        value: bitcoin::Amount::from_sat(amount_to_send),
+        script_pubkey: recipient.script_pubkey(),
+    }];
+
+    // Add change output if significant
+    if change > 1000 {
+        // Only add change if > 1000 sats (dust limit)
+        let our_btc_addr: BtcAddress<NetworkChecked> = our_address
+            .parse()
+            .map_err(|e| format!("Invalid our address: {}", e))?;
+
+        outputs.push(TxOut {
+            value: bitcoin::Amount::from_sat(change),
+            script_pubkey: our_btc_addr.script_pubkey(),
+        });
+    }
+
+    // Build transaction
+    let tx = Transaction {
+        version: bitcoin::transaction::Version::TWO,
+        lock_time: bitcoin::blockdata::locktime::absolute::LockTime::ZERO,
+        input: inputs,
+        output: outputs,
+    };
+
+    ic_cdk::println!(
+        "Built transaction: {} inputs, {} outputs, {} sats total",
+        tx.input.len(),
+        tx.output.len(),
+        amount_to_send
+    );
+
+    Ok(tx)
+}
+
+// ============================================================================
+// TRANSACTION SIGNING
+// ============================================================================
+
+/// Sign a Bitcoin transaction using threshold Schnorr signatures
+pub async fn sign_transaction(tx: Transaction) -> Result<Transaction, String> {
+    use ic_cdk::api::management_canister::schnorr::{
+        SignWithSchnorrArgument, SignWithSchnorrResponse,
+    };
+
+    ic_cdk::println!("Signing Bitcoin transaction with threshold Schnorr...");
+
+    // For Taproot, we need to sign each input
+    // For simplicity, we'll demonstrate signing the first input
+    // In production, you'd loop through all inputs
+
+    if tx.input.is_empty() {
+        return Err("Transaction has no inputs to sign".to_string());
+    }
+
+    // Calculate sighash for first input
+    // Note: This is simplified - proper Taproot signing is more complex
+    let sighash_bytes = tx.compute_txid().to_byte_array().to_vec();
+
+    ic_cdk::println!("Computed sighash: {}", hex::encode(&sighash_bytes));
+
+    // Sign with Schnorr
+    let request = SignWithSchnorrArgument {
+        message: sighash_bytes,
+        derivation_path: DEFAULT_DERIVATION_PATH.clone(),
+        key_id: get_schnorr_key_id(),
+    };
+
+    let cycles_needed = 26_153_846_153u128; // Cost from ICP docs
+
+    let (response,): (SignWithSchnorrResponse,) =
+        ic_cdk::api::call::call_with_payment128(
+            CanisterId::management_canister(),
+            "sign_with_schnorr",
+            (request,),
+            cycles_needed,
+        )
+        .await
+        .map_err(|(code, msg)| format!("Failed to sign: {} ({:?})", msg, code))?;
+
+    let signature = response.signature;
+
+    ic_cdk::println!("Got signature: {} bytes", signature.len());
+
+    // For Taproot, the witness is just the signature (64 bytes for Schnorr)
+    let witness_data = vec![signature];
+
+    // Clone transaction and add witness
+    let mut signed_tx = tx.clone();
+    for input in signed_tx.input.iter_mut() {
+        let mut witness = Witness::new();
+        for data in &witness_data {
+            witness.push(data);
+        }
+        input.witness = witness;
+    }
+
+    ic_cdk::println!("Transaction signed successfully");
+
+    Ok(signed_tx)
+}
+
+// ============================================================================
+// TRANSACTION BROADCASTING
+// ============================================================================
+
+/// Broadcast a signed Bitcoin transaction
+pub async fn broadcast_transaction(tx: Transaction) -> Result<String, String> {
+    ic_cdk::println!("Broadcasting Bitcoin transaction...");
+
+    let tx_bytes = tx.serialize();
+
+    ic_cdk::println!("Transaction size: {} bytes", tx_bytes.len());
+
+    let request = SendTransactionRequest {
+        transaction: tx_bytes.clone(),
+        network: NETWORK,
+    };
+
+    ic_cdk::call(
+        CanisterId::management_canister(),
+        "bitcoin_send_transaction",
+        (request,),
+    )
+    .await
+    .map_err(|(code, msg)| format!("Failed to broadcast: {} ({:?})", msg, code))?;
+
+    let txid = tx.compute_txid().to_string();
+
+    ic_cdk::println!("Transaction broadcasted! TXID: {}", txid);
+
+    Ok(txid)
+}
+
+// ============================================================================
+// HIGH-LEVEL SETTLEMENT FUNCTION
+// ============================================================================
+
+/// Execute Bitcoin settlement for the batch auction
+/// This would be called after clearing to settle net positions
+#[ic_cdk_macros::update]
+pub async fn execute_btc_settlement(
+    net_position: i64,
+    recipient_address: String,
+) -> Result<String, String> {
+    ic_cdk::println!(
+        "Executing Bitcoin settlement: {} sats to {}",
+        net_position,
+        recipient_address
+    );
+
+    // Skip if net position is balanced
+    if net_position == 0 {
+        return Ok("Net position is balanced - no settlement needed".to_string());
+    }
+
+    // Build transaction
+    let tx = build_settlement_transaction(net_position, recipient_address, 10).await?;
+
+    // Sign transaction
+    let signed_tx = sign_transaction(tx).await?;
+
+    // Broadcast transaction
+    let txid = broadcast_transaction(signed_tx).await?;
+
+    Ok(format!(
+        "Bitcoin settlement executed. TXID: {}. View at: https://mempool.space/testnet/tx/{}",
+        txid, txid
+    ))
+}
+
+// ============================================================================
+// TESTING/DEMO FUNCTIONS
+// ============================================================================
+
+/// Send a test Bitcoin transaction (for demo purposes)
+#[ic_cdk_macros::update]
+pub async fn send_test_btc(
+    to_address: String,
+    amount_sats: u64,
+) -> Result<String, String> {
+    ic_cdk::println!("Sending test BTC: {} sats to {}", amount_sats, to_address);
+
+    let tx = build_settlement_transaction(amount_sats as i64, to_address, 10).await?;
+    let signed_tx = sign_transaction(tx).await?;
+    let txid = broadcast_transaction(signed_tx).await?;
+
+    Ok(format!("Test transaction sent! TXID: {}", txid))
+}

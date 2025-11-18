@@ -1,0 +1,125 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-gray-800;
+  }
+  
+  body {
+    @apply bg-black text-white font-sans;
+    margin: 0;
+    overflow-x: hidden;
+  }
+  
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-black;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-700 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-600;
+  }
+}
+
+@layer components {
+  /* Minimal Glass Effect */
+  .glass {
+    background: rgba(17, 17, 17, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .glass-strong {
+    background: rgba(17, 17, 17, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  
+  /* Simple Button - No Glow */
+  .btn-glow {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .btn-glow:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+  }
+  
+  .btn-glow:active {
+    transform: translateY(0);
+  }
+  
+  /* Bold Text - No Gradient */
+  .gradient-text {
+    color: #ffffff;
+    font-weight: 700;
+  }
+  
+  .gradient-text-purple {
+    color: #e0e0e0;
+    font-weight: 700;
+  }
+  
+  /* Minimal Card Hover */
+  .card-hover {
+    transition: all 0.2s ease;
+  }
+  
+  .card-hover:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  /* Simple Border Line */
+  .neon-line {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  /* Remove Glow Box Effect */
+  .glow-box {
+    position: relative;
+  }
+  
+  .glow-box::before {
+    display: none;
+  }
+  
+  /* Minimal Shimmer */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .shimmer::after {
+    display: none;
+  }
+}
+
+@layer utilities {
+  .text-shadow-glow {
+    text-shadow: none;
+  }
+  
+  .backdrop-blur-heavy {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "canisters": {
+    "mempool_chess_backend": {
+      "type": "rust",
+      "candid": "backend/mempool_chess_backend.did",
+      "package": "mempool_chess_backend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
