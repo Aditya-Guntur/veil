@@ -68,12 +68,24 @@ const handleConnect = async () => {
               <div className="flex items-center gap-4">
                 {currentPage === 'landing' && (
                   <>
+                    <a
+                      href="https://github.com/Aditya-Guntur/veil/tree/master/docs"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                     <button className="px-6 py-3 text-gray-400 hover:text-white transition-colors font-semibold">
                       DOCS
                     </button>
+                    </a>
+                    <a
+                      href="https://github.com/Aditya-Guntur/veil"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                     <button className="px-6 py-3 text-gray-400 hover:text-white transition-colors font-semibold">
                       GITHUB
                     </button>
+                    </a>
                   </>
                 )}
                 
