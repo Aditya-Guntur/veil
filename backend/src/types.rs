@@ -137,3 +137,9 @@ pub struct LeaderboardEntry {
     pub fill_rate: u64,  // Percentage (0-100)
     pub rank: u64,
 }
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
+pub struct DemoBalance {
+    pub available: u64,
+    pub locked: u64,
+}

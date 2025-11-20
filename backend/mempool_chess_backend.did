@@ -7,6 +7,11 @@ type Asset = variant {
     ETH;
 };
 
+type DemoBalance = record {
+  available : nat64;
+  locked : nat64;
+};
+
 type OrderType = variant {
     Buy;
     Sell;
@@ -248,4 +253,10 @@ service : {
     "get_encryption_public_key": () -> (ResultBytes);
     "get_round_timelock_identity": (nat64) -> (blob) query;
     "get_my_encrypted_key": (blob) -> (ResultBytes);
+
+    // ========================================================================
+    // demo
+    // ========================================================================
+    "get_my_demo_balance": () -> (DemoBalance) query;
+    "get_demo_balance_of": (principal) -> (DemoBalance) query;
 }

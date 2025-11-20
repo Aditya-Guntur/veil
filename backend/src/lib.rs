@@ -1,10 +1,11 @@
 use candid::Principal;
-use ic_cdk::api::time;
+use ic_cdk::api::{time, caller};
 use ic_cdk_macros::*;
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap};
 use std::cell::RefCell;
 use std::collections::HashMap;
+use crate::types::DemoBalance;
 
 // Import our modules
 mod types;
@@ -22,8 +23,13 @@ type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 const ORDERS_MEMORY_ID: MemoryId = MemoryId::new(1);
 const RESULTS_MEMORY_ID: MemoryId = MemoryId::new(2);
+const INITIAL_DEMO_BALANCE: u64 = 1_000_000_000; // 1.0 demo ckBTC in satoshis
 
 thread_local! {
+    // balance setup for demo purposes
+    static DEMO_BALANCES: std::cell::RefCell<HashMap<Principal, DemoBalance>> =
+        std::cell::RefCell::new(HashMap::new());
+
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
     
@@ -121,6 +127,12 @@ fn submit_order(
     
     if commitment_hash.is_empty() {
         return Err("Commitment hash cannot be empty".to_string());
+    }
+
+    // DEMO ESCROW: lock funds for this order
+    // For Buy and Sell we lock `amount`. You can refine later if you want amount*price.
+    if let Err(e) = lock_demo_funds(caller, amount) {
+        return Err(format!("Escrow lock failed: {}", e));
     }
     
     // Create order
@@ -264,7 +276,7 @@ async fn admin_run_clearing() -> String {
             RESULTS.with(|results| {
                 results.borrow_mut().insert(current_round, result.clone());
             });
-            
+
             // Update price history
             STATE.with(|s| {
                 let mut state = s.borrow_mut();
@@ -274,6 +286,9 @@ async fn admin_run_clearing() -> String {
             
             // Update user stats
             update_user_stats(&result);
+
+            // DEMO ESCROW: apply clearing to demo balances
+            apply_clearing_to_balances(&result);
             
             // In production, this would trigger cross-chain settlement
             // For now, we'll just mark as completed
@@ -362,6 +377,94 @@ fn update_user_stats(result: &ClearingResult) {
     });
 }
 
+fn get_or_create_demo_balance(user: Principal) -> DemoBalance {
+    DEMO_BALANCES.with(|b| {
+        let mut map = b.borrow_mut();
+        map.entry(user)
+            .or_insert(DemoBalance {
+                available: INITIAL_DEMO_BALANCE,
+                locked: 0,
+            })
+            .clone()
+    })
+}
+
+fn set_demo_balance(user: Principal, balance: DemoBalance) {
+    DEMO_BALANCES.with(|b| {
+        b.borrow_mut().insert(user, balance);
+    });
+}
+
+/// Lock funds when the user submits an order
+/// For demo: we lock *amount* units, regardless of price
+fn lock_demo_funds(user: Principal, amount: u64) -> Result<(), String> {
+    DEMO_BALANCES.with(|b| {
+        let mut map = b.borrow_mut();
+        let entry = map.entry(user).or_insert(DemoBalance {
+            available: INITIAL_DEMO_BALANCE,
+            locked: 0,
+        });
+
+        if entry.available < amount {
+            return Err("Insufficient demo balance".to_string());
+        }
+
+        entry.available -= amount;
+        entry.locked += amount;
+        Ok(())
+    })
+}
+
+/// Apply balances after clearing.
+/// Very simplified: buyers "spend" locked funds, sellers get paid
+fn apply_clearing_to_balances(result: &ClearingResult) {
+    use crate::types::OrderId;
+
+    // Build map: order_id -> order
+    let orders_by_id: HashMap<OrderId, Order> = ORDERS.with(|orders| {
+        orders
+            .borrow()
+            .iter()
+            .map(|entry| (*entry.key(), entry.value().clone()))
+            .collect()
+    });
+
+    DEMO_BALANCES.with(|b| {
+        let mut balances = b.borrow_mut();
+
+        for m in &result.matches {
+            if m.fill_amount == 0 {
+                continue;
+            }
+
+            if let Some(order) = orders_by_id.get(&m.order_id) {
+                let user = order.owner;
+                let bal = balances.entry(user).or_insert(DemoBalance {
+                    available: INITIAL_DEMO_BALANCE,
+                    locked: 0,
+                });
+
+                // For demo:
+                // - Assume Buy orders lock `amount` and that locked portion is spent.
+                // - Sellers receive `fill_amount` into available.
+                match order.order_type {
+                    OrderType::Buy => {
+                        let lock_delta = m.fill_amount.min(bal.locked);
+                        bal.locked = bal.locked.saturating_sub(lock_delta);
+                        // We could also track "position" in a separate struct – omitted for demo.
+                    }
+                    OrderType::Sell => {
+                        let lock_delta = m.fill_amount.min(bal.locked);
+                        bal.locked = bal.locked.saturating_sub(lock_delta);
+                        // Credit proceeds (just equal to amount for demo)
+                        bal.available = bal.available.saturating_add(m.fill_amount);
+                    }
+                }
+            }
+        }
+    });
+}
+
 // ============================================================================
 // BASIC QUERY FUNCTIONS
 // ============================================================================
@@ -431,4 +534,19 @@ ic_cdk::export_candid!();
 #[no_mangle]
 fn getrandom(_buf: *mut u8, _len: usize) -> i32 {
     ic_cdk::trap("getrandom() not implemented. Use ic_cdk::api::management_canister::main::raw_rand()");
+}
+
+// ============================================================================
+// Endpoints for frontend to get demo balances
+// ============================================================================
+
+#[ic_cdk_macros::query]
+pub fn get_my_demo_balance() -> DemoBalance {
+    let user = ic_cdk::caller();
+    get_or_create_demo_balance(user)
+}
+
+#[ic_cdk_macros::query]
+pub fn get_demo_balance_of(user: Principal) -> DemoBalance {
+    get_or_create_demo_balance(user)
 }

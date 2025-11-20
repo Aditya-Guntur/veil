@@ -69,15 +69,6 @@ const handleConnect = async () => {
                 {currentPage === 'landing' && (
                   <>
                     <a
-                      href="https://github.com/Aditya-Guntur/veil/tree/master/docs"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                    <button className="px-4 py-1.5 bg-veil-primary text-white rounded-xl font-semibold hover:opacity-90 transition-opacity">
-                      docs
-                    </button>
-                    </a>
-                    <a
                       href="https://github.com/Aditya-Guntur/veil"
                       target="_blank"
                       rel="noopener noreferrer"
