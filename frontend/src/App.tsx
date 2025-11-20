@@ -6,8 +6,8 @@ import ResultsPage from './pages/ResultsPage'
 import { walletManager } from './utils/walletManager';
 import { canisterService } from "./services/canister";
 import { Modal } from "./components/ui/Modal";
+import { FaGithub } from "react-icons/fa";
 import './index.css'
-import type { Identity } from '@dfinity/agent'
 
 function App() {
   const [walletModalOpen, setWalletModalOpen] = useState(false);
@@ -73,8 +73,8 @@ const handleConnect = async () => {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                    <button className="px-6 py-3 text-gray-400 hover:text-white transition-colors font-semibold">
-                      DOCS
+                    <button className="px-4 py-1.5 bg-veil-primary text-white rounded-xl font-semibold hover:opacity-90 transition-opacity">
+                      docs
                     </button>
                     </a>
                     <a
@@ -82,8 +82,8 @@ const handleConnect = async () => {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                    <button className="px-6 py-3 text-gray-400 hover:text-white transition-colors font-semibold">
-                      GITHUB
+                    <button className="px-4 py-1.5 bg-veil-primary text-white rounded-xl font-semibold hover:opacity-90 transition-opacity">
+                      <FaGithub size={20} />
                     </button>
                     </a>
                   </>
@@ -116,7 +116,7 @@ const handleConnect = async () => {
                 )}
                 <button 
                   onClick={() => setWalletModalOpen(true)}
-                  className="px-6 py-3 bg-veil-primary text-white rounded-xl font-semibold hover:opacity-90 transition-opacity"
+                  className="px-4 py-1.5 bg-veil-primary text-white rounded-xl font-semibold hover:opacity-90 transition-opacity"
                 >
                   {connected && principal ? (
                     <span className="flex items-center gap-2">
