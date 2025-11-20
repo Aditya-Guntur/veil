@@ -11,7 +11,7 @@ export const AnimatedBackground = () => {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    canvas.width = window.innerWidth
+    canvas.width = 2*window.innerWidth
     canvas.height = window.innerHeight
 
     // Characters to use in the cipher effect
