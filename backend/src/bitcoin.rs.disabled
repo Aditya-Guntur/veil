@@ -1,7 +1,7 @@
 use bitcoin::{
     address::NetworkChecked,
+    bitcoin::key::Secp256k1;
     hashes::Hash,
-    key::Secp256k1,
     psbt::serialize::Serialize,
     Address as BtcAddress, Network as BtcNetwork, OutPoint, PublicKey as BtcPublicKey,
     ScriptBuf, Sequence, Transaction, TxIn, TxOut, Witness, XOnlyPublicKey,
@@ -81,7 +81,7 @@ pub async fn get_btc_address() -> Result<String, String> {
     let secp = Secp256k1::new();
 
     // Create P2TR (Taproot) address
-    let address = BtcAddress::p2tr(&secp, x_only_key, None, BTC_NETWORK);
+    let address = BtcAddress::p2tr(x_only_key, None, BTC_NETWORK);
 
     ic_cdk::println!("Generated address: {}", address);
 

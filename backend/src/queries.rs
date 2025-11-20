@@ -14,8 +14,14 @@ pub fn get_user_orders(user: Principal) -> Vec<Order> {
         orders
             .borrow()
             .iter()
-            .filter(|(_, order)| order.owner == user)
-            .map(|(_, order)| order.clone())
+            .filter_map(|entry| {
+                let order = entry.value();
+                if order.owner == user {
+                    Some(order.clone())
+                } else {
+                    None
+                }
+            })
             .collect()
     })
 }
@@ -29,10 +35,14 @@ pub fn get_user_current_round_orders(user: Principal) -> Vec<Order> {
         orders
             .borrow()
             .iter()
-            .filter(|(_, order)| {
-                order.owner == user && order.round_id == current_round
+            .filter_map(|entry| {
+                let order = entry.value();
+                if order.owner == user && order.round_id == current_round {
+                    Some(order.clone())
+                } else {
+                    None
+                }
             })
-            .map(|(_, order)| order.clone())
             .collect()
     })
 }
@@ -50,7 +60,7 @@ pub fn get_user_stats(user: Principal) -> Option<UserStats> {
 pub fn get_user_round_surplus(user: Principal, round_id: RoundId) -> u64 {
     // Get the clearing result
     let result = RESULTS.with(|results| {
-        results.borrow().get(&round_id).cloned()
+        results.borrow().get(&round_id).map(|r| r.clone())
     });
     
     if let Some(result) = result {
@@ -59,10 +69,14 @@ pub fn get_user_round_surplus(user: Principal, round_id: RoundId) -> u64 {
             orders
                 .borrow()
                 .iter()
-                .filter(|(_, order)| {
-                    order.owner == user && order.round_id == round_id
+                .filter_map(|entry| {
+                    let (id, order) = (entry.key(), entry.value());
+                    if order.owner == user && order.round_id == round_id {
+                        Some(*id)
+                    } else {
+                        None
+                    }
                 })
-                .map(|(id, _)| id)
                 .collect()
         });
         
@@ -86,7 +100,7 @@ pub fn get_user_round_surplus(user: Principal, round_id: RoundId) -> u64 {
 #[ic_cdk_macros::query]
 pub fn get_round_result(round_id: RoundId) -> Option<ClearingResult> {
     RESULTS.with(|results| {
-        results.borrow().get(&round_id).cloned()
+        results.borrow().get(&round_id).map(|r| r.clone())
     })
 }
 
@@ -104,8 +118,14 @@ pub fn get_round_orders(round_id: RoundId) -> Vec<Order> {
         orders
             .borrow()
             .iter()
-            .filter(|(_, order)| order.round_id == round_id)
-            .map(|(_, order)| order.clone())
+            .filter_map(|entry| {
+                let order = entry.value();
+                if order.round_id == round_id {
+                    Some(order.clone())
+                } else {
+                    None
+                }
+            })
             .collect()
     })
 }
@@ -134,7 +154,7 @@ pub fn get_recent_prices(count: usize) -> Vec<u64> {
 #[ic_cdk_macros::query]
 pub fn get_round_leaderboard(round_id: RoundId) -> Vec<LeaderboardEntry> {
     // Get clearing result
-    let result = match RESULTS.with(|results| results.borrow().get(&round_id).cloned()) {
+    let result = match RESULTS.with(|results| results.borrow().get(&round_id).map(|r| r.clone())) {
         Some(r) => r,
         None => return Vec::new(),
     };
@@ -144,8 +164,14 @@ pub fn get_round_leaderboard(round_id: RoundId) -> Vec<LeaderboardEntry> {
         orders
             .borrow()
             .iter()
-            .filter(|(_, order)| order.round_id == round_id)
-            .map(|(id, order)| (id, order.owner))
+            .filter_map(|entry| {
+                let (id, order) = (entry.key(), entry.value());
+                if order.round_id == round_id {
+                    Some((*id, order.owner))
+                } else {
+                    None
+                }
+            })
             .collect()
     });
     
@@ -255,7 +281,8 @@ pub fn get_order_book_summary() -> OrderBookSummary {
         let mut total_buy = 0u64;
         let mut total_sell = 0u64;
         
-        for (_, order) in orders.borrow().iter() {
+        for entry in orders.borrow().iter() {
+            let order = entry.value();
             if order.round_id == current_round {
                 match order.order_type {
                     OrderType::Buy => {
@@ -307,7 +334,8 @@ pub fn get_platform_stats() -> PlatformStats {
         let mut volume = 0u64;
         let mut surplus = 0u64;
         
-        for (_, result) in results.borrow().iter() {
+        for entry in results.borrow().iter() {
+            let result = entry.value();
             volume += result.total_volume;
             surplus += result.total_surplus;
         }

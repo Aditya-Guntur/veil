@@ -17,14 +17,16 @@ serde_json = "1.0"
 hex = "0.4"
 sha2 = "0.10"
 
-# Ethereum
+# Ethereum - WASM compatible
 ethers-core = { version = "2.0.14", default-features = false, features = ["legacy"] }
 k256 = { version = "0.13.3", default-features = false, features = ["ecdsa"] }
 sha3 = "0.10"
 
-# Bitcoin
-bitcoin = { version = "0.32", default-features = false }
-secp256k1 = { version = "0.29", default-features = false, features = ["alloc", "recovery"] }
-
 # Crypto
 getrandom = { version = "0.2", features = ["custom"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true

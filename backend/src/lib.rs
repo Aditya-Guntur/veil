@@ -1,10 +1,8 @@
-use candid::{CandidType, Decode, Encode, Principal};
+use candid::Principal;
 use ic_cdk::api::time;
 use ic_cdk_macros::*;
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
-use ic_stable_structures::{storable::Bound, DefaultMemoryImpl, StableBTreeMap, Storable};
-use serde::{Deserialize, Serialize};
-use std::borrow::Cow;
+use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap};
 use std::cell::RefCell;
 use std::collections::HashMap;
 
@@ -16,6 +14,8 @@ mod queries;
 mod timers;
 
 use types::*;
+// Import the types needed for Candid export
+use queries::{OrderBookSummary, PlatformStats};
 
 // Memory setup
 type Memory = VirtualMemory<DefaultMemoryImpl>;
@@ -89,7 +89,7 @@ fn submit_order(
     encrypted_payload: Vec<u8>,
     commitment_hash: String,
 ) -> Result<OrderId, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     
     // Validate caller is not anonymous
     if caller == Principal::anonymous() {
@@ -167,11 +167,6 @@ fn submit_order(
 
 #[update]
 fn admin_start_round() -> String {
-    let caller = ic_cdk::caller();
-    
-    // TODO: Add proper admin check
-    // For hackathon, anyone can start a round
-    
     STATE.with(|s| {
         let mut state = s.borrow_mut();
         
@@ -217,8 +212,14 @@ async fn admin_run_clearing() -> String {
         orders
             .borrow()
             .iter()
-            .filter(|(_, order)| order.round_id == current_round)
-            .map(|(_, order)| order.clone())
+            .filter_map(|entry| {
+                let order = entry.value();  // ✅ CORRECT
+                if order.round_id == current_round {
+                    Some(order.clone())
+                } else {
+                    None
+                }
+            })
             .collect()
     });
     
@@ -320,8 +321,14 @@ fn update_user_stats(result: &ClearingResult) {
             orders
                 .borrow()
                 .iter()
-                .filter(|(_, order)| order.round_id == result.round_id)
-                .map(|(id, order)| (id, order.owner))
+                .filter_map(|entry| {
+                    let order = entry.value();  // ✅ CORRECT
+                    if order.round_id == result.round_id {
+                        Some((*entry.key(), order.owner))
+                    } else {
+                        None
+                    }
+                })
                 .collect()
         });
         
@@ -377,7 +384,7 @@ fn get_current_round_orders() -> u64 {
         orders
             .borrow()
             .iter()
-            .filter(|(_, order)| order.round_id == current_round)
+            .filter(|entry| entry.value().round_id == current_round)
             .count() as u64
     })
 }

@@ -173,8 +173,6 @@ service : {
         text            // commitment_hash
     ) -> (ResultOrder);
     
-    "get_encryption_public_key": () -> (ResultBytes);
-    
     // ========================================================================
     // ROUND MANAGEMENT (Admin)
     // ========================================================================
@@ -243,4 +241,11 @@ service : {
     "execute_eth_settlement": (int64) -> (Result);
     "send_test_eth": (text, nat64) -> (Result);
     "build_uniswap_swap": (nat64, nat64) -> (Result);
+
+    // ========================================================================
+    // VETKEYS ENCRYPTION
+    // ========================================================================
+    "get_encryption_public_key": () -> (ResultBytes);
+    "get_round_timelock_identity": (nat64) -> (blob) query;
+    "get_my_encrypted_key": (blob) -> (ResultBytes);
 }

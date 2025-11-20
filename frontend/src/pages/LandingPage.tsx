@@ -1,4 +1,3 @@
-// pages/LandingPage.tsx
 import { motion } from 'framer-motion'
 import { Lock, Shield, Zap } from 'lucide-react'
 
@@ -36,7 +35,16 @@ function LandingPage({ onEnter }: LandingPageProps) {
             transition={{ delay: 0.3 }}
             className="text-gray-400 mb-8 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed"
           >
-            Encrypt. Submit. Reveal together.
+            Encrypt&nbsp;&nbsp;.&nbsp;&nbsp;Submit&nbsp;&nbsp;.&nbsp;&nbsp;Reveal
+          </motion.p>
+
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-gray-400 mb-8 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed"
+          >
+            WHERE STRATEGY BEATS SPEED
           </motion.p>
 
           {/* Mempool Chess Hook */}
@@ -48,7 +56,7 @@ function LandingPage({ onEnter }: LandingPageProps) {
           >
             <Shield className="text-veil-accent" size={18} />
             <span className="text-sm text-gray-300 font-semibold">
-              Win at mempool chess. Play your move in secret.
+              Win at mempool chess - Play your move in secret
             </span>
             <Zap className="text-veil-accent" size={18} />
           </motion.div>
@@ -291,7 +299,7 @@ function LandingPage({ onEnter }: LandingPageProps) {
             </button>
 
             {/* Note */}
-            <motion.p
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.9 }}
@@ -300,7 +308,7 @@ function LandingPage({ onEnter }: LandingPageProps) {
               <div className="w-1 h-1 bg-gray-600 rounded-full" />
               wallet must be connected to enter
               <div className="w-1 h-1 bg-gray-600 rounded-full" />
-            </motion.p>
+            </motion.div>
           </motion.div>
         </div>
       </motion.div>

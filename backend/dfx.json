@@ -2,14 +2,24 @@
   "canisters": {
     "mempool_chess_backend": {
       "type": "rust",
-      "candid": "backend/mempool_chess_backend.did",
+      "candid": "mempool_chess_backend.did",
       "package": "mempool_chess_backend"
+    },
+    "internet_identity": {
+      "type": "custom",
+      "candid": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity.did",
+      "wasm": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity_dev.wasm.gz"
     }
   },
   "defaults": {
     "build": {
       "args": "",
       "packtool": ""
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:4943"
     }
   },
   "output_env_file": ".env",

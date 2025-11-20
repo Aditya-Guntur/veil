@@ -5,34 +5,85 @@ import { Card } from '../ui/Card';
 import { TrendingUp, TrendingDown, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { canisterService } from '../../services/canister';
+import { useAuth } from '../../hooks/useAuth';
 
 export const OrderForm: React.FC = () => {
+  const { isAuthenticated, login } = useAuth();
   const [side, setSide] = useState<'Buy' | 'Sell'>('Buy');
   const [amount, setAmount] = useState('');
   const [price, setPrice] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
+    // Check authentication
+    if (!isAuthenticated) {
+      toast.error('Please connect your wallet first');
+      try {
+        await login();
+      } catch (error) {
+        return;
+      }
+    }
+
     // Validation
     if (!amount || !price) {
       toast.error('Please fill in all fields');
       return;
     }
 
+    const amountNum = parseFloat(amount);
+    const priceNum = parseFloat(price);
+
+    if (amountNum <= 0 || priceNum <= 0) {
+      toast.error('Amount and price must be positive');
+      return;
+    }
+
     setIsSubmitting(true);
-    
+
     try {
-      // TODO: Encrypt order
-      // TODO: Submit to canister
+      // Convert to base units
+      // ETH: 1 ETH = 10^18 wei
+      const amountInWei = Math.floor(amountNum * Math.pow(10, 18));
       
-      toast.success('Order encrypted and submitted! 🔒');
-      
+      // Price in USD cents (e.g., $3,100.00 = 310000 cents)
+      const priceInCents = Math.floor(priceNum * 100);
+
+      console.log(`Submitting order: ${side} ${amountNum} ETH @ $${priceNum}`);
+      console.log(`Converting: ${amountInWei} wei @ ${priceInCents} cents`);
+
+      // Show encrypting toast
+      const encryptingToast = toast.loading('🔐 Encrypting order with vetKeys...');
+
+      // Submit encrypted order
+      const orderId = await canisterService.submitOrder(
+        side,
+        'ETH',
+        amountInWei,
+        priceInCents
+      );
+
+      toast.dismiss(encryptingToast);
+      toast.success(
+        `Order #${orderId.toString()} encrypted and submitted! 🎉`,
+        { duration: 5000 }
+      );
+
       // Reset form
       setAmount('');
       setPrice('');
-    } catch (error) {
-      toast.error('Failed to submit order');
-      console.error(error);
+
+    } catch (error: any) {
+      console.error('Order submission error:', error);
+      
+      if (error.message.includes('not accepting orders')) {
+        toast.error('Round is not active. Wait for next round.');
+      } else if (error.message.includes('Anonymous users')) {
+        toast.error('Please connect your wallet');
+      } else {
+        toast.error(`Failed to submit order: ${error.message}`);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -53,6 +104,7 @@ export const OrderForm: React.FC = () => {
             variant={side === 'Buy' ? 'success' : 'secondary'}
             className="flex-1"
             onClick={() => setSide('Buy')}
+            disabled={isSubmitting}
           >
             <TrendingUp className="mr-2" size={18} />
             Buy
@@ -61,6 +113,7 @@ export const OrderForm: React.FC = () => {
             variant={side === 'Sell' ? 'danger' : 'secondary'}
             className="flex-1"
             onClick={() => setSide('Sell')}
+            disabled={isSubmitting}
           >
             <TrendingDown className="mr-2" size={18} />
             Sell
@@ -75,6 +128,9 @@ export const OrderForm: React.FC = () => {
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           icon={<span className="font-mono text-sm">ETH</span>}
+          disabled={isSubmitting}
+          step="0.01"
+          min="0"
         />
 
         {/* Price Input */}
@@ -85,22 +141,40 @@ export const OrderForm: React.FC = () => {
           value={price}
           onChange={(e) => setPrice(e.target.value)}
           icon={<span className="font-mono text-sm">USD</span>}
+          disabled={isSubmitting}
+          step="0.01"
+          min="0"
         />
 
         {/* Info Box */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="glass p-4 rounded-lg text-sm text-gray-300"
+          className="glass p-2.2 rounded-lg text-sm text-gray-300"
         >
           <p className="mb-2">💡 <strong>How it works:</strong></p>
           <ul className="list-disc list-inside space-y-1 text-xs">
-            <li>Your order will be encrypted using vetKeys</li>
+            <li>Your order will be encrypted using vetKeys timelock encryption</li>
             <li>Nobody can see your order until the round ends</li>
-            <li>All orders reveal simultaneously at 00:00</li>
+            <li>All orders reveal simultaneously when round timer hits 00:00</li>
             <li>Everyone trades at the same fair clearing price</li>
+            <li>You earn surplus if your limit is better than clearing price</li>
           </ul>
         </motion.div>
+
+        {/* Estimated Surplus */}
+        {amount && price && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass p-3 rounded-lg"
+          >
+            <div className="text-xs text-gray-400 mb-1">Estimated Order Value</div>
+            <div className="text-lg font-bold gradient-text">
+              ${(parseFloat(amount) * parseFloat(price)).toFixed(2)}
+            </div>
+          </motion.div>
+        )}
 
         {/* Submit Button */}
         <Button
@@ -110,10 +184,32 @@ export const OrderForm: React.FC = () => {
           className="w-full"
           onClick={handleSubmit}
           loading={isSubmitting}
+          disabled={!amount || !price || isSubmitting}
         >
-          <Lock className="mr-2" size={18} />
-          Encrypt & Submit Order
+          {isSubmitting ? (
+            <>
+              <Lock className="mr-2 animate-pulse" size={18} />
+              Encrypting...
+            </>
+          ) : (
+            <>
+              <Lock className="mr-2" size={18} />
+              Encrypt & Submit Order
+            </>
+          )}
         </Button>
+
+        {/* Connection Warning */}
+        {!isAuthenticated && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-xs text-yellow-400 text-center flex items-center justify-center gap-2"
+          >
+            <span>⚠️</span>
+            <span>Wallet must be connected to submit orders</span>
+          </motion.div>
+        )}
       </div>
     </Card>
   );

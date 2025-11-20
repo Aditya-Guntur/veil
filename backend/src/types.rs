@@ -1,4 +1,4 @@
-use candid::{CandidType, Principal};
+use candid::{CandidType, Principal, Encode, Decode};
 use serde::{Deserialize, Serialize};
 use ic_stable_structures::storable::Bound;
 use ic_stable_structures::Storable;
@@ -88,26 +88,32 @@ impl Default for State {
 
 // Storable implementations for stable memory
 impl Storable for Order {
+    fn into_bytes(self) -> Vec<u8> {
+        Encode!(&self).unwrap()
+    }
+    
     fn to_bytes(&self) -> Cow<[u8]> {
-        let bytes = serde_json::to_vec(self).unwrap();
-        Cow::Owned(bytes)
+        Cow::Owned(Encode!(self).unwrap())
     }
 
     fn from_bytes(bytes: Cow<[u8]>) -> Self {
-        serde_json::from_slice(bytes.as_ref()).unwrap()
+        Decode!(bytes.as_ref(), Self).unwrap()
     }
 
     const BOUND: Bound = Bound::Unbounded;
 }
 
 impl Storable for ClearingResult {
+    fn into_bytes(self) -> Vec<u8> {
+        Encode!(&self).unwrap()
+    }
+
     fn to_bytes(&self) -> Cow<[u8]> {
-        let bytes = serde_json::to_vec(self).unwrap();
-        Cow::Owned(bytes)
+        Cow::Owned(Encode!(self).unwrap())
     }
 
     fn from_bytes(bytes: Cow<[u8]>) -> Self {
-        serde_json::from_slice(bytes.as_ref()).unwrap()
+        Decode!(bytes.as_ref(), Self).unwrap()
     }
 
     const BOUND: Bound = Bound::Unbounded;

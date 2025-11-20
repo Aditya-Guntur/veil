@@ -3,16 +3,45 @@ import { AnimatedBackground } from './components/AnimatedBackground'
 import LandingPage from './pages/LandingPage'
 import TradingPage from './pages/TradingPage'
 import ResultsPage from './pages/ResultsPage'
+import { walletManager } from './utils/walletManager';
+import { canisterService } from "./services/canister";
+import { Modal } from "./components/ui/Modal";
 import './index.css'
+import type { Identity } from '@dfinity/agent'
 
 function App() {
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState<'landing' | 'trading' | 'results'>('landing')
   const [connected, setConnected] = useState(false)
+  const [principal, setPrincipal] = useState<string | null>(null);
 
-  const handleConnect = () => {
-    setConnected(true)
-    setCurrentPage('trading')
+
+const handleConnect = async () => {
+  try {
+    console.log("Wallet connect clicked");
+
+    const res = await walletManager.connectInternetIdentity();
+    console.log("Wallet result:", res);
+
+    if (!res.success || !res.wallet?.identity) {
+      alert("ICP Login failed");
+      return;
+    }
+
+    await canisterService.initialize(res.wallet.identity);
+
+    const actor = canisterService.getActor();
+    console.log("Actor after init:", actor);
+
+    setConnected(true);
+    setPrincipal(res.wallet.address);
+    setConnected(true);
+    setCurrentPage("trading");
+  } catch (e) {
+    console.error("Wallet connect failed:", e);
   }
+};
+
 
   return (
     <>
@@ -73,15 +102,14 @@ function App() {
                     Back to Trading
                   </button>
                 )}
-                
                 <button 
-                  onClick={handleConnect}
+                  onClick={() => setWalletModalOpen(true)}
                   className="px-6 py-3 bg-veil-primary text-white rounded-xl font-semibold hover:opacity-90 transition-opacity"
                 >
-                  {connected ? (
+                  {connected && principal ? (
                     <span className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-veil-accent rounded-full animate-pulse" />
-                      0x1a2b...3c4d
+                      {principal.slice(0, 6)}...{principal.slice(-4)}
                     </span>
                   ) : (
                     'connect wallet'
@@ -119,6 +147,54 @@ function App() {
           </div>
         </footer>
       </div>
+
+    <Modal
+      isOpen={walletModalOpen}
+      onClose={() => setWalletModalOpen(false)}
+      title="Connect Wallet"
+    >
+      <div className="space-y-4">
+        <button
+          onClick={() => {
+            // walletManager.connectInternetIdentity()
+            //   .then(async (res) => {
+            //     if (!res.success || !res.wallet?.identity) {
+            //       alert(res.error || "ICP failed");
+            //       return;
+            //     }
+
+            //     await canisterService.initialize(res.wallet.identity as Identity);
+
+            //     setConnected(true);
+            //     setCurrentPage("trading");
+            //     setWalletModalOpen(false);
+            //   });
+          }}
+          className="w-full px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20"
+        >
+          Connect Internet Identity
+        </button>
+
+        <button
+          onClick={async () => {
+            // const res = await walletManager.connectWallet("metamask");
+
+            // if (!res.success) {
+            //   alert(res.error || "MetaMask failed");
+            //   return;
+            // }
+
+            // setConnected(true);
+            // setCurrentPage("trading");
+            // setWalletModalOpen(false);
+          }}
+          className="w-full px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20"
+        >
+          Connect MetaMask
+        </button>
+      </div>
+    </Modal>
+
     </>
   )
 }
