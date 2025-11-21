@@ -44,6 +44,12 @@ pub struct Order {
     pub commitment_hash: String,  // Hash of unencrypted order for verification
 }
 
+#[derive(CandidType, Deserialize, Serialize)]
+pub enum ResultOrder {
+    Ok(u64),
+    Err(String),
+}
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct OrderMatch {
     pub order_id: OrderId,
@@ -138,8 +144,11 @@ pub struct LeaderboardEntry {
     pub rank: u64,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
-pub struct DemoBalance {
-    pub available: u64,
-    pub locked: u64,
+// Per-user demo balances for the local demo
+#[derive(Clone, Debug, Default, CandidType, Deserialize, Serialize)]
+pub struct DemoUserBalance {
+    pub btc_free: u64,    // available ckBTC units
+    pub btc_locked: u64,  // ckBTC locked in open sell orders
+    pub usd_free: u64,    // available "USD" demo units for buys
+    pub usd_locked: u64,  // USD locked in open buy orders
 }

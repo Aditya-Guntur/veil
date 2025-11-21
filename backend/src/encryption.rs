@@ -4,9 +4,21 @@ use serde::{Deserialize, Serialize};
 use sha2::{Sha256, Digest};
 
 // ============================================================================
+// FLAG HELPERS
+// ============================================================================
+#[inline]
+fn is_demo() -> bool {
+    cfg!(feature = "demo")
+}
+
+#[inline]
+fn is_vetkeys() -> bool {
+    cfg!(feature = "vetkeys")
+}
+
+// ============================================================================
 // VETKEYS TYPES
 // ============================================================================
-
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum VetKDCurve {
     #[serde(rename = "bls12_381")]
@@ -163,7 +175,15 @@ pub fn verify_commitment(
     commitment_hash: &str,
 ) -> Result<bool, String> {
     let computed_hash = generate_commitment_hash(decrypted_data);
-    Ok(computed_hash == commitment_hash)
+    // In demo mode, always allow
+    if cfg!(feature = "demo") {
+        return Ok(true);
+    }
+    // Real security check (mainnet / production)
+    if computed_hash != commitment_hash {
+        return Err("SECURITY VIOLATION: Commitment hash mismatch".to_string());
+    }
+    Ok(true)
 }
 
 /// Decrypt a batch of orders for a specific round
@@ -185,25 +205,28 @@ pub async fn decrypt_order_batch(
     let round_id = orders[0].round_id;
     ic_cdk::println!("Decrypting {} orders for round {}", orders.len(), round_id);
 
-    // For production with vetKeys:
-    // 1. Generate transport key pair in canister
-    // 2. Call derive_round_decryption_key with transport public key
-    // 3. Decrypt the encrypted_key response with transport private key
-    // 4. Use resulting symmetric key to decrypt order payloads
-    
-    // For hackathon demo (vetKeys API may not be fully available):
-    // We simulate the process by verifying commitment hashes
-    // The encrypted_payload contains the order details in JSON format
-    
     let mut decrypted_orders = Vec::new();
-    
+
     for order in orders {
-        // Simulate decryption by parsing the payload
-        // In production, this would use AES-GCM with the derived vetKey
+        // ============================
+        // DEMO MODE — bypass real crypto
+        // ============================
+        if cfg!(feature = "demo") {
+            ic_cdk::println!(
+                "⚠️ DEMO MODE: Skipping decryption + commitment check for order {}",
+                order.id
+            );
+            decrypted_orders.push(order);
+            continue;
+        }
+
+        // ============================
+        // REAL MODE (VetKeys path later)
+        // ============================
         let decrypted_data = String::from_utf8(order.encrypted_payload.clone())
             .map_err(|e| format!("Invalid UTF-8 in order {}: {}", order.id, e))?;
 
-        // CRITICAL: Verify commitment hash
+        // CRITICAL: Commitment hash verification (only in real mode)
         if !verify_commitment(&decrypted_data, &order.commitment_hash)? {
             return Err(format!(
                 "SECURITY VIOLATION: Commitment hash mismatch for order {}. \
@@ -217,12 +240,13 @@ pub async fn decrypt_order_batch(
     }
 
     ic_cdk::println!(
-        "Successfully decrypted and verified {} orders",
+        "Successfully processed {} orders",
         decrypted_orders.len()
     );
 
     Ok(decrypted_orders)
 }
+
 
 // ============================================================================
 // IDENTITY-BASED ENCRYPTION (for user-specific keys)

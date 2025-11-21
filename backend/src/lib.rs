@@ -5,7 +5,8 @@ use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemor
 use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use crate::types::DemoBalance;
+use crate::types::{ DemoUserBalance, ResultOrder};
+use serde::{Deserialize, Serialize};
 
 // Import our modules
 mod types;
@@ -21,13 +22,23 @@ use queries::{OrderBookSummary, PlatformStats};
 // Memory setup
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
+type OrderId = u64;
+
 const ORDERS_MEMORY_ID: MemoryId = MemoryId::new(1);
 const RESULTS_MEMORY_ID: MemoryId = MemoryId::new(2);
 const INITIAL_DEMO_BALANCE: u64 = 1_000_000_000; // 1.0 demo ckBTC in satoshis
 
+const DEMO_USERS: [&str; 4] = [
+        "trader1",
+        "trader2",
+        "trader3",
+        "trader4",
+];
+
+
 thread_local! {
     // balance setup for demo purposes
-    static DEMO_BALANCES: std::cell::RefCell<HashMap<Principal, DemoBalance>> =
+    static DEMO_BALANCES: std::cell::RefCell<HashMap<Principal, DemoUserBalance>> =
         std::cell::RefCell::new(HashMap::new());
 
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
@@ -87,96 +98,65 @@ fn post_upgrade() {
 // ============================================================================
 
 #[update]
-fn submit_order(
+async fn submit_order(
     order_type: OrderType,
     asset: Asset,
     amount: u64,
     price_limit: u64,
     encrypted_payload: Vec<u8>,
     commitment_hash: String,
-) -> Result<OrderId, String> {
-    let caller = ic_cdk::api::msg_caller();
-    
-    // Validate caller is not anonymous
-    if caller == Principal::anonymous() {
-        return Err("Anonymous users cannot submit orders".to_string());
-    }
-    
-    // Check round state
-    let current_state = STATE.with(|s| s.borrow().clone());
-    
-    if current_state.round_state != RoundState::Active {
-        return Err(format!(
-            "Cannot submit order: round is in {:?} state",
-            current_state.round_state
-        ));
-    }
-    
-    // Validate inputs
-    if amount == 0 {
-        return Err("Amount must be greater than 0".to_string());
-    }
-    
-    if price_limit == 0 {
-        return Err("Price limit must be greater than 0".to_string());
-    }
-    
-    if encrypted_payload.is_empty() {
-        return Err("Encrypted payload cannot be empty".to_string());
-    }
-    
-    if commitment_hash.is_empty() {
-        return Err("Commitment hash cannot be empty".to_string());
+) -> ResultOrder {
+    let caller = ic_cdk::caller();
+
+    // 1) Basic round checks
+    let state = STATE.with(|s| s.borrow().clone());
+    if state.round_state != RoundState::Active {
+        return ResultOrder::Err("Round is not active".to_string());
     }
 
-    // DEMO ESCROW: lock funds for this order
-    // For Buy and Sell we lock `amount`. You can refine later if you want amount*price.
-    if let Err(e) = lock_demo_funds(caller, amount) {
-        return Err(format!("Escrow lock failed: {}", e));
+    if amount == 0 {
+        return ResultOrder::Err("Amount must be > 0".to_string());
     }
-    
-    // Create order
+
+    // 2) Escrow: lock demo funds for this user
+    if let Err(e) = lock_demo_funds(caller, &order_type, amount, price_limit) {
+        return ResultOrder::Err(e);
+    }
+
+    // 3) Generate new OrderId
     let order_id = STATE.with(|s| {
-        let mut state = s.borrow_mut();
-        let id = state.next_order_id;
-        state.next_order_id += 1;
+        let mut st = s.borrow_mut();
+        let id = st.next_order_id;
+        st.next_order_id += 1;
         id
     });
-    
-    let new_order = Order {
+
+    let now = ic_cdk::api::time();
+
+    let order = Order {
         id: order_id,
-        round_id: current_state.round_id,
+        round_id: state.round_id,
         owner: caller,
         order_type: order_type.clone(),
-        asset: asset.clone(),
+        asset,
         amount,
         price_limit,
-        created_at: time(),
+        created_at: now,
         encrypted_payload,
         commitment_hash,
     };
-    
-    // Store order
+
+    // 4) Store order in ORDERS or ORDERS_BY_ROUND (depending on your structure)
     ORDERS.with(|orders| {
-        orders.borrow_mut().insert(order_id, new_order);
+        orders.borrow_mut().insert(order_id, order);
     });
-    
-    ic_cdk::println!(
-        "Order {} submitted: {:?} {} {:?} @ ${}",
-        order_id,
-        order_type,
-        amount,
-        asset,
-        price_limit as f64 / 100.0
-    );
-    
-    Ok(order_id)
+
+    ResultOrder::Ok(order_id)
 }
 
 // ============================================================================
 // ROUND MANAGEMENT (Admin Functions)
 // ============================================================================
-
 #[update]
 fn admin_start_round() -> String {
     STATE.with(|s| {
@@ -288,7 +268,9 @@ async fn admin_run_clearing() -> String {
             update_user_stats(&result);
 
             // DEMO ESCROW: apply clearing to demo balances
-            apply_clearing_to_balances(&result);
+            if let Err(e) = apply_settlement_for_round(&result) {
+                ic_cdk::println!("Settlement error: {}", e);
+            }
             
             // In production, this would trigger cross-chain settlement
             // For now, we'll just mark as completed
@@ -377,19 +359,21 @@ fn update_user_stats(result: &ClearingResult) {
     });
 }
 
-fn get_or_create_demo_balance(user: Principal) -> DemoBalance {
+fn get_or_create_demo_balance(user: Principal) -> DemoUserBalance {
     DEMO_BALANCES.with(|b| {
         let mut map = b.borrow_mut();
         map.entry(user)
-            .or_insert(DemoBalance {
-                available: INITIAL_DEMO_BALANCE,
-                locked: 0,
+            .or_insert(DemoUserBalance {
+                btc_free: 1_000_000_000,
+                btc_locked: 0,
+                usd_free: 10_000_000_000,
+                usd_locked: 0,
             })
             .clone()
     })
 }
 
-fn set_demo_balance(user: Principal, balance: DemoBalance) {
+fn set_demo_balance(user: Principal, balance: DemoUserBalance) {
     DEMO_BALANCES.with(|b| {
         b.borrow_mut().insert(user, balance);
     });
@@ -397,72 +381,158 @@ fn set_demo_balance(user: Principal, balance: DemoBalance) {
 
 /// Lock funds when the user submits an order
 /// For demo: we lock *amount* units, regardless of price
-fn lock_demo_funds(user: Principal, amount: u64) -> Result<(), String> {
-    DEMO_BALANCES.with(|b| {
-        let mut map = b.borrow_mut();
-        let entry = map.entry(user).or_insert(DemoBalance {
-            available: INITIAL_DEMO_BALANCE,
-            locked: 0,
-        });
+fn lock_demo_funds(user: Principal, order_type: &OrderType, amount: u64, price_limit: u64,) -> Result<(), String> {
+    with_demo_balance_mut(&user, |bal| {
+        match order_type {
+            OrderType::Buy => {
+                // For BUY: lock USD = amount * price_limit
+                let required = amount
+                    .checked_mul(price_limit)
+                    .ok_or_else(|| "Overflow in required funds".to_string())?;
 
-        if entry.available < amount {
-            return Err("Insufficient demo balance".to_string());
+                if bal.usd_free < required {
+                    return Err(format!(
+                        "Insufficient USD balance: required {}, available {}",
+                        required, bal.usd_free
+                    ));
+                }
+
+                bal.usd_free -= required;
+                bal.usd_locked += required;
+            }
+            OrderType::Sell => {
+                // For SELL: lock BTC = amount
+                if bal.btc_free < amount {
+                    return Err(format!(
+                        "Insufficient BTC balance: required {}, available {}",
+                        amount, bal.btc_free
+                    ));
+                }
+
+                bal.btc_free -= amount;
+                bal.btc_locked += amount;
+            }
         }
 
-        entry.available -= amount;
-        entry.locked += amount;
         Ok(())
     })
 }
 
-/// Apply balances after clearing.
-/// Very simplified: buyers "spend" locked funds, sellers get paid
-fn apply_clearing_to_balances(result: &ClearingResult) {
-    use crate::types::OrderId;
+// Helper to get mutable balance for a user
+fn with_demo_balance_mut<R>(user: &Principal, f: impl FnOnce(&mut DemoUserBalance) -> R) -> R {
+    DEMO_BALANCES.with(|balances| {
+        let mut map = balances.borrow_mut();
+        let bal = map.entry(*user).or_insert_with(|| DemoUserBalance {
+            btc_free: 1_000_000_000,
+            btc_locked: 0,
+            usd_free: 10_000_000_000,
+            usd_locked: 0,
+        });
+        f(bal)
+    })
+}
 
-    // Build map: order_id -> order
+fn apply_settlement_for_round(clearing: &ClearingResult) -> Result<(), String> {
+    // Build a map from order_id -> order to avoid repeated lookups
+    use std::collections::HashMap;
+
     let orders_by_id: HashMap<OrderId, Order> = ORDERS.with(|orders| {
         orders
             .borrow()
             .iter()
-            .map(|entry| (*entry.key(), entry.value().clone()))
+            .map(|entry| {
+                let id = *entry.key();
+                let order = entry.value().clone();
+                (id, order)
+            })
             .collect()
     });
 
-    DEMO_BALANCES.with(|b| {
-        let mut balances = b.borrow_mut();
-
-        for m in &result.matches {
-            if m.fill_amount == 0 {
+    for m in &clearing.matches {
+        let order = match orders_by_id.get(&m.order_id) {
+            Some(o) => o,
+            None => {
+                ic_cdk::println!("Settlement: unknown order id {}", m.order_id);
                 continue;
             }
+        };
 
-            if let Some(order) = orders_by_id.get(&m.order_id) {
-                let user = order.owner;
-                let bal = balances.entry(user).or_insert(DemoBalance {
-                    available: INITIAL_DEMO_BALANCE,
-                    locked: 0,
-                });
+        let user = order.owner;
+        let fill_amount = m.fill_amount;
+        let clearing_price = clearing.clearing_price;
 
-                // For demo:
-                // - Assume Buy orders lock `amount` and that locked portion is spent.
-                // - Sellers receive `fill_amount` into available.
-                match order.order_type {
-                    OrderType::Buy => {
-                        let lock_delta = m.fill_amount.min(bal.locked);
-                        bal.locked = bal.locked.saturating_sub(lock_delta);
-                        // We could also track "position" in a separate struct – omitted for demo.
-                    }
-                    OrderType::Sell => {
-                        let lock_delta = m.fill_amount.min(bal.locked);
-                        bal.locked = bal.locked.saturating_sub(lock_delta);
-                        // Credit proceeds (just equal to amount for demo)
-                        bal.available = bal.available.saturating_add(m.fill_amount);
-                    }
+        match order.order_type {
+            OrderType::Buy => {
+                // reserved = amount * price_limit (at submission)
+                let reserved = order
+                    .amount
+                    .checked_mul(order.price_limit)
+                    .ok_or_else(|| "Overflow in reserved funds".to_string())?;
+
+                let cost = fill_amount
+                    .checked_mul(clearing_price)
+                    .ok_or_else(|| "Overflow in settlement cost".to_string())?;
+
+                if cost > reserved {
+                    return Err(format!(
+                        "Settlement invariant violated for BUY order {}: cost {} > reserved {}",
+                        order.id, cost, reserved
+                    ));
                 }
+
+                let refund = reserved - cost;
+
+                with_demo_balance_mut(&user, |bal| {
+                    // We expect usd_locked >= reserved, but be defensive
+                    if bal.usd_locked < reserved {
+                        ic_cdk::println!(
+                            "Warning: usd_locked {} < reserved {} for user {:?}",
+                            bal.usd_locked,
+                            reserved,
+                            user
+                        );
+                    } else {
+                        bal.usd_locked -= reserved;
+                    }
+
+                    // Buyer pays 'cost' and gets BTC
+                    bal.btc_free = bal.btc_free.saturating_add(fill_amount);
+                    // Any leftover reserved funds are refunded as free USD
+                    bal.usd_free = bal.usd_free.saturating_add(refund);
+                });
+            }
+
+            OrderType::Sell => {
+                // reserved BTC = amount (at submission)
+                let reserved_btc = order.amount;
+                let unsold_btc = reserved_btc.saturating_sub(fill_amount);
+
+                let proceeds = fill_amount
+                    .checked_mul(clearing_price)
+                    .ok_or_else(|| "Overflow in seller proceeds".to_string())?;
+
+                with_demo_balance_mut(&user, |bal| {
+                    if bal.btc_locked < reserved_btc {
+                        ic_cdk::println!(
+                            "Warning: btc_locked {} < reserved_btc {} for user {:?}",
+                            bal.btc_locked,
+                            reserved_btc,
+                            user
+                        );
+                    } else {
+                        bal.btc_locked -= reserved_btc;
+                    }
+
+                    // Unsold BTC is returned
+                    bal.btc_free = bal.btc_free.saturating_add(unsold_btc);
+                    // Proceeds in USD are credited
+                    bal.usd_free = bal.usd_free.saturating_add(proceeds);
+                });
             }
         }
-    });
+    }
+
+    Ok(())
 }
 
 // ============================================================================
@@ -541,12 +611,12 @@ fn getrandom(_buf: *mut u8, _len: usize) -> i32 {
 // ============================================================================
 
 #[ic_cdk_macros::query]
-pub fn get_my_demo_balance() -> DemoBalance {
+pub fn get_my_demo_balance() -> DemoUserBalance {
     let user = ic_cdk::caller();
     get_or_create_demo_balance(user)
 }
 
 #[ic_cdk_macros::query]
-pub fn get_demo_balance_of(user: Principal) -> DemoBalance {
+pub fn get_demo_balance_of(user: Principal) -> DemoUserBalance {
     get_or_create_demo_balance(user)
 }

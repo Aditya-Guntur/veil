@@ -7,9 +7,11 @@ type Asset = variant {
     ETH;
 };
 
-type DemoBalance = record {
-  available : nat64;
-  locked : nat64;
+type DemoUserBalance = record {
+  btc_free : nat64;
+  btc_locked : nat64;
+  usd_free : nat64;
+  usd_locked : nat64;
 };
 
 type OrderType = variant {
@@ -257,6 +259,6 @@ service : {
     // ========================================================================
     // demo
     // ========================================================================
-    "get_my_demo_balance": () -> (DemoBalance) query;
-    "get_demo_balance_of": (principal) -> (DemoBalance) query;
+    "get_my_demo_balance": () -> (DemoUserBalance) query;
+    "get_demo_balance_of": (principal) -> (DemoUserBalance) query;
 }
