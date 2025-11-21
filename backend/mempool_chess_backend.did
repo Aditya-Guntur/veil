@@ -253,12 +253,13 @@ service : {
     // VETKEYS ENCRYPTION
     // ========================================================================
     "get_encryption_public_key": () -> (ResultBytes);
-    "get_round_timelock_identity": (nat64) -> (blob) query;
-    "get_my_encrypted_key": (blob) -> (ResultBytes);
+    "get_round_timelock_identity": (nat64) -> (vec nat8) query;
+    "get_my_encrypted_key": (vec nat8) -> (variant { Ok : vec nat8; Err : text });
 
     // ========================================================================
     // demo
     // ========================================================================
     "get_my_demo_balance": () -> (DemoUserBalance) query;
     "get_demo_balance_of": (principal) -> (DemoUserBalance) query;
+
 }

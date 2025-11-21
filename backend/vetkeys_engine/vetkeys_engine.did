@@ -1,0 +1,22 @@
+// ==============================
+// VetKeys Engine Candid
+// ==============================
+
+type ResultBytes = variant {
+  Ok : vec nat8;
+  Err : text;
+};
+
+service : {
+  // Get master VetKD public key (used by frontend to encrypt)
+  get_encryption_public_key : () -> (ResultBytes);
+
+  // Timelock identity for rounds
+  get_round_timelock_identity : (nat64) -> (vec nat8) query;
+
+  // Derive round decryption key
+  derive_round_decryption_key : (nat64, vec nat8) -> (ResultBytes);
+
+  // Derive user-specific encrypted key
+  derive_user_key : (principal, vec nat8) -> (ResultBytes);
+}

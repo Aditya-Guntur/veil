@@ -27,9 +27,9 @@ getrandom = { version = "0.2", features = ["custom"] }
 
 
 [features]
-default = ["demo"]
 demo = []
 vetkeys = []
+default = []
 
 
 [profile.release]
@@ -37,3 +37,8 @@ opt-level = "z"
 lto = true
 codegen-units = 1
 strip = true
+
+[dev-dependencies]
+aes-gcm = "0.10.3"
+pocket-ic = "10.0.0"
+rand = "0.9.2"

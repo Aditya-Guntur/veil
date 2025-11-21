@@ -8,6 +8,19 @@ use std::collections::HashMap;
 use crate::types::{ DemoUserBalance, ResultOrder};
 use serde::{Deserialize, Serialize};
 
+fn vetkeys_engine_canister_id() -> Principal {
+    Principal::from_text("uzt4z-lp777-77774-qaabq-cai").unwrap()
+}
+// ==============================
+// Common Result Types
+// ==============================
+
+#[derive(candid::CandidType, serde::Serialize, serde::Deserialize, Debug)]
+pub enum ResultBytes {
+    Ok(Vec<u8>),
+    Err(String),
+}
+
 // Import our modules
 mod types;
 mod auction;
@@ -37,6 +50,10 @@ const DEMO_USERS: [&str; 4] = [
 
 
 thread_local! {
+
+    // test-storage
+    pub static STORAGE: RefCell<Vec<(u64, Vec<u8>, String)>> = RefCell::new(vec![]);
+     
     // balance setup for demo purposes
     static DEMO_BALANCES: std::cell::RefCell<HashMap<Principal, DemoUserBalance>> =
         std::cell::RefCell::new(HashMap::new());
@@ -586,7 +603,7 @@ fn get_time_remaining() -> u64 {
 // ENCRYPTION PUBLIC KEY (for frontend)
 // ============================================================================
 
-#[update]
+#[ic_cdk_macros::update]
 async fn get_encryption_public_key() -> Result<Vec<u8>, String> {
     encryption::get_encryption_public_key().await
 }
@@ -619,4 +636,59 @@ pub fn get_my_demo_balance() -> DemoUserBalance {
 #[ic_cdk_macros::query]
 pub fn get_demo_balance_of(user: Principal) -> DemoUserBalance {
     get_or_create_demo_balance(user)
+}
+
+// ============================================================================
+// test-only methods
+// ============================================================================
+
+#[ic_cdk_macros::update]
+fn pocketic_submit_order(
+    round_id: u64,
+    encrypted_payload: Vec<u8>,
+    commitment_hash: String
+) {
+    crate::STORAGE.with(|s| {
+        s.borrow_mut().push((round_id, encrypted_payload, commitment_hash));
+    });
+}
+
+#[ic_cdk_macros::query]
+fn pocketic_get_order_ciphertext() -> Vec<u8> {
+    crate::STORAGE.with(|s| {
+        s.borrow().last().unwrap().1.clone()
+    })
+}
+
+// ============================================================================
+// Required backend endpoint
+// ============================================================================
+
+#[ic_cdk_macros::update]
+fn set_vetkeys_engine_id(id: candid::Principal) {
+    crate::encryption::set_vetkeys_engine_canister_id(id);
+}
+
+#[ic_cdk_macros::update]
+fn pocketic_submit_order(
+    _round_id: u64,
+    encrypted_payload: Vec<u8>,
+    _commitment_hash: String
+) {
+    use std::cell::RefCell;
+    thread_local! {
+        static LAST_ORDER: RefCell<Vec<u8>> = RefCell::new(Vec::new());
+    }
+
+    LAST_ORDER.with(|o| *o.borrow_mut() = encrypted_payload);
+}
+
+#[ic_cdk_macros::query]
+fn pocketic_get_order_ciphertext() -> Vec<u8> {
+    use std::cell::RefCell;
+    thread_local! {
+        static LAST_ORDER: RefCell<Vec<u8>> = RefCell::new(Vec::new());
+    }
+
+    LAST_ORDER.with(|o| o.borrow().clone())
 }

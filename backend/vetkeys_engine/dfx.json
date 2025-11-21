@@ -1,0 +1,22 @@
+{
+  "canisters": {
+    "vetkeys_engine": {
+      "type": "rust",
+      "package": "vetkeys_engine",
+      "candid": "vetkeys_engine.did"
+    }
+  },
+  "defaults": {
+    "build": {
+      "packtool": "wasm-pack"
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:4943",
+      "type": "ephemeral"
+    }
+  },
+  "version": 1
+}
+

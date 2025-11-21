@@ -3,7 +3,13 @@
     "mempool_chess_backend": {
       "type": "rust",
       "candid": "mempool_chess_backend.did",
-      "package": "mempool_chess_backend"
+      "package": "mempool_chess_backend",
+      "build": "cargo build --target wasm32-unknown-unknown --release --no-default-features --features vetkeys"
+    },
+    "vetkeys_engine": {
+    "type": "custom",
+    "wasm": "vetkeys_engine/target/wasm32-unknown-unknown/release/vetkeys_engine.wasm",
+    "candid": "vetkeys_engine/vetkeys_engine.did"
     },
     "internet_identity": {
       "type": "custom",
