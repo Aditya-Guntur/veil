@@ -15,6 +15,9 @@ function App() {
   const [connected, setConnected] = useState(false)
   const [principal, setPrincipal] = useState<string | null>(null);
 
+const handleEnterVeil = () => {
+  setCurrentPage("trading");
+};
 
 const handleConnect = async () => {
   try {
@@ -125,7 +128,7 @@ const handleConnect = async () => {
 
         {/* Main Content */}
         <main className="relative z-10">
-          {currentPage === 'landing' && <LandingPage onEnter={handleConnect} />}
+          {currentPage === 'landing' && <LandingPage onEnter={handleEnterVeil} />}
           {currentPage === 'trading' && <TradingPage />}
           {currentPage === 'results' && <ResultsPage />}
         </main>

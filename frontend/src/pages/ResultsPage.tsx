@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import ClearingPriceReveal from '../components/results/ClearingPriceReveal';
-import OrderBreakdown from '../components/results/OrderBreakdown';
 import UserStatsCard from '../components/results/UserStatsCard';
 import { canisterService} from '../services/canister';
 import type { ClearingResult, UserStats, LeaderboardEntry } from '../services/canister';
