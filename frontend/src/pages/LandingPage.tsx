@@ -92,9 +92,9 @@ function LandingPage({ onEnter }: LandingPageProps) {
               {/* Encrypted Input Orders */}
               <div className="flex justify-between items-start mb-8">
                 {[
-                  { side: 'BUY', amount: '5.2 ETH', price: '█████', color: 'text-green-400' },
-                  { side: 'SELL', amount: '3.8 ETH', price: '█████', color: 'text-red-400' },
-                  { side: 'BUY', amount: '10.5 ETH', price: '█████', color: 'text-green-400' },
+                  { side: 'BUY', amount: '5.2 ckETH', price: '█████', color: 'text-green-400' },
+                  { side: 'SELL', amount: '3.8 ckETH', price: '█████', color: 'text-red-400' },
+                  { side: 'BUY', amount: '10.5 ckETH', price: '█████', color: 'text-green-400' },
                 ].map((order, i) => (
                   <motion.div
                     key={`input-${i}`}
@@ -306,7 +306,7 @@ function LandingPage({ onEnter }: LandingPageProps) {
               className="text-xs text-gray-500 flex items-center justify-center gap-2"
             >
               <div className="w-1 h-1 bg-gray-600 rounded-full" />
-              wallet must be connected to enter
+                -----------------------
               <div className="w-1 h-1 bg-gray-600 rounded-full" />
             </motion.div>
           </motion.div>
