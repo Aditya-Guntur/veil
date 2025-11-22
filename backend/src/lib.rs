@@ -8,9 +8,6 @@ use std::collections::HashMap;
 use crate::types::{ DemoUserBalance, ResultOrder};
 use serde::{Deserialize, Serialize};
 
-fn vetkeys_engine_canister_id() -> Principal {
-    Principal::from_text("uzt4z-lp777-77774-qaabq-cai").unwrap()
-}
 // ==============================
 // Common Result Types
 // ==============================
@@ -50,36 +47,40 @@ const DEMO_USERS: [&str; 4] = [
 
 
 thread_local! {
+    static LAST_ORDER: std::cell::RefCell<Vec<u8>> = std::cell::RefCell::new(vec![]);
 
     // test-storage
     pub static STORAGE: RefCell<Vec<(u64, Vec<u8>, String)>> = RefCell::new(vec![]);
-     
+
+    static VETKD_ID: RefCell<Option<Principal>> = RefCell::new(None);
+
     // balance setup for demo purposes
     static DEMO_BALANCES: std::cell::RefCell<HashMap<Principal, DemoUserBalance>> =
         std::cell::RefCell::new(HashMap::new());
 
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
-    
+
     static STATE: RefCell<State> = RefCell::new(State::default());
-    
+
     // Orders storage - all orders across all rounds
     pub static ORDERS: RefCell<StableBTreeMap<OrderId, Order, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with(|m| m.borrow().get(ORDERS_MEMORY_ID))
         )
     );
-    
+
     // Results storage - clearing results per round
     pub static RESULTS: RefCell<StableBTreeMap<RoundId, ClearingResult, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with(|m| m.borrow().get(RESULTS_MEMORY_ID))
         )
     );
-    
-    // User stats - in-memory cache (could be moved to stable storage)
+
+    // User stats - in-memory cache
     static USER_STATS: RefCell<HashMap<Principal, UserStats>> = RefCell::new(HashMap::new());
 }
+
 
 // ============================================================================
 // INITIALIZATION
@@ -603,10 +604,14 @@ fn get_time_remaining() -> u64 {
 // ENCRYPTION PUBLIC KEY (for frontend)
 // ============================================================================
 
-#[ic_cdk_macros::update]
-async fn get_encryption_public_key() -> Result<Vec<u8>, String> {
-    encryption::get_encryption_public_key().await
+#[ic_cdk_macros::query]
+fn get_encryption_public_key() -> Vec<u8> {
+    // Demo key for PocketIC
+    let mut fake_key = vec![0u8; 32];
+    fake_key[..4].copy_from_slice(b"DEMO");
+    fake_key
 }
+
 
 // ============================================================================
 // CANDID EXPORT
@@ -641,54 +646,27 @@ pub fn get_demo_balance_of(user: Principal) -> DemoUserBalance {
 // ============================================================================
 // test-only methods
 // ============================================================================
-
-#[ic_cdk_macros::update]
-fn pocketic_submit_order(
-    round_id: u64,
-    encrypted_payload: Vec<u8>,
-    commitment_hash: String
-) {
-    crate::STORAGE.with(|s| {
-        s.borrow_mut().push((round_id, encrypted_payload, commitment_hash));
-    });
-}
-
-#[ic_cdk_macros::query]
-fn pocketic_get_order_ciphertext() -> Vec<u8> {
-    crate::STORAGE.with(|s| {
-        s.borrow().last().unwrap().1.clone()
-    })
-}
-
-// ============================================================================
-// Required backend endpoint
-// ============================================================================
-
-#[ic_cdk_macros::update]
-fn set_vetkeys_engine_id(id: candid::Principal) {
-    crate::encryption::set_vetkeys_engine_canister_id(id);
-}
-
 #[ic_cdk_macros::update]
 fn pocketic_submit_order(
     _round_id: u64,
     encrypted_payload: Vec<u8>,
     _commitment_hash: String
-) {
-    use std::cell::RefCell;
-    thread_local! {
-        static LAST_ORDER: RefCell<Vec<u8>> = RefCell::new(Vec::new());
-    }
-
+) -> Result<u64, String> {
     LAST_ORDER.with(|o| *o.borrow_mut() = encrypted_payload);
+    Ok(1)
 }
+
 
 #[ic_cdk_macros::query]
 fn pocketic_get_order_ciphertext() -> Vec<u8> {
-    use std::cell::RefCell;
-    thread_local! {
-        static LAST_ORDER: RefCell<Vec<u8>> = RefCell::new(Vec::new());
-    }
-
     LAST_ORDER.with(|o| o.borrow().clone())
+}
+
+#[ic_cdk_macros::update]
+pub fn set_vetkd_canister(id: Principal) {
+    VETKD_ID.with(|v| *v.borrow_mut() = Some(id));
+}
+
+pub fn vetkeys_engine_canister_id() -> Principal {
+    VETKD_ID.with(|v| v.borrow().expect("VETKD canister not set"))
 }

@@ -1,5 +1,4 @@
 use candid::Principal;
-use crate::ResultBytes;
 
 // =====================================
 // FLAGS
@@ -37,47 +36,67 @@ fn vetkeys_engine_canister_id() -> Principal {
 // ============================================================================
 
 pub async fn get_encryption_public_key() -> Result<Vec<u8>, String> {
-    if is_demo() {
+
+    // ============================
+    // PocketIC / Demo mode
+    // ============================
+    if cfg!(test) || is_demo() {
+        // deterministic 32-byte fake key
         let mut fake_key = vec![0u8; 32];
         fake_key[..4].copy_from_slice(b"DEMO");
         return Ok(fake_key);
     }
 
-    let canister = crate::vetkeys_engine_canister_id();
+    // ============================
+    // Real live mode (mainnet/local)
+    // ============================
+    let canister = vetkeys_engine_canister_id();
 
-    let (res,): (Result<Vec<u8>, String>,) = ic_cdk::call(
+    let (res,): (Vec<u8>,) = ic_cdk::call(
         canister,
-        "get_encryption_public_key",
+        "get_public_key",
         (),
     )
     .await
     .map_err(|e| format!("Call failed: {:?}", e))?;
 
-    res
+    Ok(res)
+
 }
+
 
 pub async fn derive_round_decryption_key(
     round_id: u64,
-    transport_public_key: Vec<u8>,
+    _transport_public_key: Vec<u8>,
 ) -> Result<Vec<u8>, String> {
-    if is_demo() {
-        let mut fake_key = vec![0u8; 32];
-        fake_key[..8].copy_from_slice(&round_id.to_be_bytes());
-        return Ok(fake_key);
+
+    // ============================
+    // PocketIC / Demo
+    // ============================
+    if cfg!(test) || is_demo() {
+        let mut fake = vec![0u8; 32];
+        fake[..8].copy_from_slice(&round_id.to_be_bytes());
+        return Ok(fake);
     }
 
-    let canister = crate::vetkeys_engine_canister_id();
+    // ============================
+    // Real vetkeys mode
+    // ============================
+    let canister = vetkeys_engine_canister_id();
 
-    let (res,): (Result<Vec<u8>, String>,) = ic_cdk::call(
-        canister,
-        "derive_round_decryption_key",
-        (round_id, transport_public_key),
-    )
-    .await
-    .map_err(|e| format!("Call failed: {:?}", e))?;
+    let args = (
+        round_id,
+        _transport_public_key,
+    );
+
+    let (res,): (Result<Vec<u8>, String>,) =
+        ic_cdk::call(canister, "derive_round_key", args)
+            .await
+            .map_err(|e| format!("Call failed: {:?}", e))?;
 
     res
 }
+
 
 
 pub async fn derive_user_key(
@@ -92,7 +111,7 @@ pub async fn derive_user_key(
         return Ok(fake_key);
     }
 
-    let canister = crate::vetkeys_engine_canister_id();
+    let canister = vetkeys_engine_canister_id();
 
     let (res,): (Result<Vec<u8>, String>,) = ic_cdk::call(
         canister,

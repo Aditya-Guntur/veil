@@ -335,61 +335,115 @@ class CanisterService {
   // ORDER SUBMISSION
   // ============================================================================
 
+  // async submitOrder(
+  //   side: 'Buy' | 'Sell',
+  //   asset: 'BTC' | 'ETH',
+  //   amount: number, // in base units (satoshis/wei)
+  //   priceLimit: number // in USD cents
+  // ): Promise<bigint> {
+  //   if (!this.actor) {
+  //     throw new Error('Canister not initialized');
+  //   }
+
+  //   // Get current round state
+  //   const state = await this.getRoundState();
+    
+  //   if (!('Active' in state.round_state)) {
+  //     throw new Error('Round is not accepting orders');
+  //   }
+
+  //   const roundId = state.round_id;
+
+  //   // Format order data
+  //   const orderData = this.formatOrderData(side, asset, amount, priceLimit);
+    
+  //   // Generate commitment hash BEFORE encryption
+  //   const commitmentHash = this.generateCommitmentHash(orderData);
+
+  //   // Get master public key and timelock identity
+  //   const masterPubKey = await this.getMasterPublicKey();
+  //   const timelockIdentity = await this.getTimelockIdentity(roundId);
+
+  //   // Encrypt order using vetKeys
+  //   const encryptedPayload = await encryptData(
+  //     new TextEncoder().encode(orderData),
+  //     masterPubKey,
+  //     timelockIdentity
+  //   );
+
+  //   // Submit to canister
+  //   const orderTypeVariant: OrderType = side === 'Buy' ? { Buy: null } : { Sell: null };
+  //   const assetVariant: Asset = asset === 'BTC' ? { BTC: null } : { ETH: null };
+
+  //   const result = await this.actor.submit_order(
+  //     orderTypeVariant,
+  //     assetVariant,
+  //     BigInt(amount),
+  //     BigInt(priceLimit),
+  //     Array.from(encryptedPayload),
+  //     commitmentHash
+  //   );
+
+  //   if ('Err' in result) {
+  //     throw new Error(result.Err);
+  //   }
+
+  //   return result.Ok;
+  // }
+  
   async submitOrder(
-    side: 'Buy' | 'Sell',
-    asset: 'BTC' | 'ETH',
-    amount: number, // in base units (satoshis/wei)
-    priceLimit: number // in USD cents
-  ): Promise<bigint> {
-    if (!this.actor) {
-      throw new Error('Canister not initialized');
-    }
-
-    // Get current round state
-    const state = await this.getRoundState();
-    
-    if (!('Active' in state.round_state)) {
-      throw new Error('Round is not accepting orders');
-    }
-
-    const roundId = state.round_id;
-
-    // Format order data
-    const orderData = this.formatOrderData(side, asset, amount, priceLimit);
-    
-    // Generate commitment hash BEFORE encryption
-    const commitmentHash = this.generateCommitmentHash(orderData);
-
-    // Get master public key and timelock identity
-    const masterPubKey = await this.getMasterPublicKey();
-    const timelockIdentity = await this.getTimelockIdentity(roundId);
-
-    // Encrypt order using vetKeys
-    const encryptedPayload = await encryptData(
-      new TextEncoder().encode(orderData),
-      masterPubKey,
-      timelockIdentity
-    );
-
-    // Submit to canister
-    const orderTypeVariant: OrderType = side === 'Buy' ? { Buy: null } : { Sell: null };
-    const assetVariant: Asset = asset === 'BTC' ? { BTC: null } : { ETH: null };
-
-    const result = await this.actor.submit_order(
-      orderTypeVariant,
-      assetVariant,
-      BigInt(amount),
-      BigInt(priceLimit),
-      Array.from(encryptedPayload),
-      commitmentHash
-    );
-
-    if ('Err' in result) {
-      throw new Error(result.Err);
-    }
-
-    return result.Ok;
+  side: 'Buy' | 'Sell',
+  asset: 'BTC' | 'ETH',
+  amount: number,
+  priceLimit: number
+): Promise<bigint> {
+  if (!this.actor) {
+    throw new Error('Canister not initialized');
   }
+
+  // 1. Get round state
+  const state = await this.getRoundState();
+  if (!('Active' in state.round_state)) {
+    throw new Error('Round is not accepting orders');
+  }
+
+  const roundId = state.round_id;
+
+  // 2. Prepare plaintext order JSON
+  const orderData = JSON.stringify({
+    side,
+    asset,
+    amount,
+    priceLimit,
+    roundId
+  });
+
+  // 3. Commitment hash (unchanged)
+  const commitmentHash = this.generateCommitmentHash(orderData);
+
+  // ✅ 4. Mock encryption instead of vetKeys
+  const encryptedPayload = new TextEncoder().encode(
+    `MOCK_ENCRYPTED::${orderData}`
+  );
+
+  // 5. Variants
+  const orderTypeVariant: OrderType = side === 'Buy' ? { Buy: null } : { Sell: null };
+  const assetVariant: Asset = asset === 'BTC' ? { BTC: null } : { ETH: null };
+
+  // ✅ 6. Call PocketIC-compatible method
+  const result = await this.actor.pocketic_submit_order(
+    BigInt(roundId),
+    Array.from(encryptedPayload),
+    commitmentHash
+  );
+
+  if ('Err' in result) {
+    throw new Error(result.Err);
+  }
+
+  return result.Ok;
+}
+
 
   // ============================================================================
   // STATE QUERIES

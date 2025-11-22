@@ -7,6 +7,23 @@ import UserStatsCard from '../components/results/UserStatsCard';
 import { canisterService } from '../services/canister';
 import type { State, OrderBookSummary, UserStats } from '../services/canister';
 import { useAuth } from '../hooks/useAuth';
+import { MOCK_USERS } from '../utils/mockUsers';
+import { Principal } from "@dfinity/principal";
+
+
+const { setMockUser } = useAuth();
+
+<div className="glass p-4 rounded-xl mb-6 flex gap-2">
+  {MOCK_USERS.map(u => (
+    <button
+      key={u.principal}
+      onClick={() => setMockUser(u.principal)}
+      className="px-4 py-2 bg-black/40 rounded"
+    >
+      {u.name}
+    </button>
+  ))}
+</div>
 
 function TradingPage() {
   const { principal } = useAuth();
@@ -35,8 +52,13 @@ function TradingPage() {
 
       // Load user stats if authenticated
       if (principal) {
-        const stats = await canisterService.getUserStats(principal);
-        setUserStats(stats);
+        try {
+          const p = Principal.fromText(principal);
+          const stats = await canisterService.getUserStats(p);
+          setUserStats(stats);
+        } catch (e) {
+          console.error("Invalid principal:", principal);
+        }
       }
     } catch (error) {
       console.error('Failed to load data:', error);
