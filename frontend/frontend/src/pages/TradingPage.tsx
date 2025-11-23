@@ -10,27 +10,13 @@ import { useAuth } from '../hooks/useAuth';
 import { MOCK_USERS } from '../utils/mockUsers';
 import { Principal } from "@dfinity/principal";
 
-
-const { setMockUser } = useAuth();
-
-<div className="glass p-4 rounded-xl mb-6 flex gap-2">
-  {MOCK_USERS.map(u => (
-    <button
-      key={u.principal}
-      onClick={() => setMockUser(u.principal)}
-      className="px-4 py-2 bg-black/40 rounded"
-    >
-      {u.name}
-    </button>
-  ))}
-</div>
-
 function TradingPage() {
   const { principal } = useAuth();
   const [roundState, setRoundState] = useState<State | null>(null);
   const [orderBook, setOrderBook] = useState<OrderBookSummary | null>(null);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { setMockUser } = useAuth();
 
   useEffect(() => {
     loadData();
@@ -88,6 +74,8 @@ function TradingPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+
+
       {/* Countdown Timer */}
       <RoundCountdown
         endTime={roundEndTime}
