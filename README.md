@@ -451,29 +451,27 @@ cargo test --tests (choose whichever test file you need in tests)
 
 ## 📈 Roadmap
 
-### Phase 1: MVP (Current) ✅
+### Current:
 - [x] Encrypted order submission via vetKeys
 - [x] Automatic round progression (60s rounds)
 - [x] Clearing price algorithm (supply/demand intersection)
 - [x] Demo mode with virtual balances
 - [x] Leaderboard and user stats
 - [x] Internet Identity integration
+- [x] Real Bitcoin integration (threshold Schnorr)
+- [x] Real Ethereum integration (threshold ECDSA)
+- [x] Historical analytics dashboard 
 
-### Phase 2: Real Settlement (Q2 2025) 🚧
-- [ ] Real Bitcoin integration (threshold Schnorr)
-- [ ] Real Ethereum integration (threshold ECDSA)
+### Features we plan to add:
+
 - [ ] HTTPS outcalls for chain data (UTXOs, gas prices)
 - [ ] Uniswap integration for liquidity
-- [ ] Multi-asset support (BTC, ETH, USDC)
-
-### Phase 3: Advanced Features (Q3 2025) 🔮
-- [ ] Historical analytics dashboard
 - [ ] Strategy backtesting tools
 - [ ] Social features (follow top traders)
 - [ ] Mobile app (iOS + Android)
 - [ ] Limit order types (FOK, IOC, GTC)
 
-### Phase 4: Ecosystem Growth (Q4 2025) 🌍
+### Ecosystem Growth Plan:
 - [ ] API for algorithmic traders
 - [ ] Liquidity mining rewards
 - [ ] Governance token (VEIL)
