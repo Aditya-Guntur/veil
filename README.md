@@ -33,6 +33,8 @@ When you trade on traditional DEXs (Uniswap, PancakeSwap):
 
 ## 💡 Our Solution: Encrypted Batch Auctions
 
+### Refer here for complete architecture diagram: https://github.com/Aditya-Guntur/veil/blob/master/docs/architecture.md
+
 ### The 4-Round Mechanism
 ```
 ┌─────────────┐      ┌─────────────┐      ┌─────────────┐     ┌─────────────┐
