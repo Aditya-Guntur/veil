@@ -458,8 +458,8 @@ cargo test --tests (choose whichever test file you need in tests)
 - [x] Demo mode with virtual balances
 - [x] Leaderboard and user stats
 - [x] Internet Identity integration
-- [x] Real Bitcoin integration (threshold Schnorr)
-- [x] Real Ethereum integration (threshold ECDSA)
+- [x] Bitcoin integration (threshold Schnorr)
+- [x] Ethereum integration (threshold ECDSA)
 - [x] Historical analytics dashboard 
 
 ### Features we plan to add:
