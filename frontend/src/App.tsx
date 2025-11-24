@@ -56,6 +56,18 @@ const handleConnect = async () => {
 
         {/* Header */}
         <header className="relative z-10 backdrop-blur-xl">
+
+                    {/* Disclaimer Banner */}
+          <div className="bg-yellow-500/10 border-b border-yellow-500/30 backdrop-blur-sm">
+            <div className="max-w-7xl mx-auto px-4 py-2">
+              <p className="text-center text-sm text-yellow-300 flex items-center justify-center gap-2">
+                <span>⚠️</span>
+                <span className="font-semibold">DEMO MODE:</span>
+                <span>Currently testing on PocketIC. Backend integration paused to prevent signature errors.</span>
+              </p>
+            </div>
+          </div>
+          
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-6">
               {/* Logo */}
