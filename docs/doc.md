@@ -8,21 +8,21 @@
 │                     (React + TypeScript Frontend)                   │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐         │
-│  │  Landing     │    │  Trading     │    │  Results     │         │
-│  │  Page        │    │  Page        │    │  Page        │         │
-│  │              │    │              │    │              │         │
-│  │  • Hero      │    │  • Timer     │    │  • Price     │         │
-│  │  • Features  │    │  • OrderForm │    │  • Stats     │         │
-│  │  • CTA       │    │  • OrderBook │    │  • Leaderboard│        │
-│  └──────────────┘    └──────────────┘    └──────────────┘         │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐           │
+│  │  Landing     │    │  Trading     │    │  Results     │           │
+│  │  Page        │    │  Page        │    │  Page        │           │
+│  │              │    │              │    │              │           │
+│  │  • Hero      │    │  • Timer     │    │  • Price     │           │
+│  │  • Features  │    │  • OrderForm │    │  • Stats     │           │
+│  │  • CTA       │    │  • OrderBook │    │  • Leaderboard│          │
+│  └──────────────┘    └──────────────┘    └──────────────┘           │
 │                                                                     │
-│  ┌─────────────────────────────────────────────────────────┐       │
-│  │            State Management & Hooks                     │       │
-│  │  • useAuth (Internet Identity)                          │       │
-│  │  • useCountdown (Real-time timer)                       │       │
-│  │  • canisterService (Actor wrapper)                      │       │
-│  └─────────────────────────────────────────────────────────┘       │
+│  ┌─────────────────────────────────────────────────────────┐        │
+│  │            State Management & Hooks                     │        │
+│  │  • useAuth (Internet Identity)                          │        │
+│  │  • useCountdown (Real-time timer)                       │        │
+│  │  • canisterService (Actor wrapper)                      │        │
+│  └─────────────────────────────────────────────────────────┘        │
 └────────────────────────────┬────────────────────────────────────────┘
                              │
                              │ @dfinity/agent (Candid Interface)
@@ -32,52 +32,52 @@
 │                  (Internet Computer Canisters)                      │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│  ┌───────────────────────────────────────────────────────────────┐ │
-│  │          mempool_chess_backend (Main Canister)                │ │
-│  │                                                               │ │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐          │ │
-│  │  │   lib.rs    │  │  types.rs   │  │ auction.rs  │          │ │
-│  │  │             │  │             │  │             │          │ │
-│  │  │ • STATE     │  │ • Order     │  │ • Clearing  │          │ │
-│  │  │ • STORAGE   │  │ • Round     │  │   Algorithm │          │ │
-│  │  │ • Endpoints │  │ • Results   │  │ • Supply/   │          │ │
-│  │  │             │  │ • Stats     │  │   Demand    │          │ │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘          │ │
-│  │                                                               │ │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐          │ │
-│  │  │encryption.rs│  │  timers.rs  │  │ queries.rs  │          │ │
-│  │  │             │  │             │  │             │          │ │
-│  │  │ • vetKeys   │  │ • Heartbeat │  │ • User Data │          │ │
-│  │  │   Bridge    │  │ • Auto      │  │ • Leaderboard│         │ │
-│  │  │ • Decrypt   │  │   Progress  │  │ • OrderBook │          │ │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘          │ │
-│  │                                                               │ │
-│  │  ┌──────────────────────────┐  ┌──────────────────────────┐ │ │
-│  │  │     ethereum.rs          │  │      bitcoin.rs          │ │
-│  │  │                          │  │                          │ │
-│  │  │ • Threshold ECDSA        │  │ • Threshold Schnorr      │ │
-│  │  │ • EIP-1559 Transactions  │  │ • UTXO Management        │ │
-│  │  │ • Uniswap Integration    │  │ • Transaction Building   │ │
-│  │  └──────────────────────────┘  └──────────────────────────┘ │ │
-│  └───────────────────────────────────────────────────────────────┘ │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │          mempool_chess_backend (Main Canister)                │  │
+│  │                                                               │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │  │
+│  │  │   lib.rs    │  │  types.rs   │  │ auction.rs  │            │  │
+│  │  │             │  │             │  │             │            │  │
+│  │  │ • STATE     │  │ • Order     │  │ • Clearing  │            │  │
+│  │  │ • STORAGE   │  │ • Round     │  │   Algorithm │            │  │
+│  │  │ • Endpoints │  │ • Results   │  │ • Supply/   │            │  │
+│  │  │             │  │ • Stats     │  │   Demand    │            │  │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘            │  │ 
+│  │                                                               │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │  │
+│  │  │encryption.rs│  │  timers.rs  │  │ queries.rs  │            │  │
+│  │  │             │  │             │  │             │            │  │
+│  │  │ • vetKeys   │  │ • Heartbeat │  │ • User Data │            │  │
+│  │  │   Bridge    │  │ • Auto      │  │ • Leaderboard│           │  │
+│  │  │ • Decrypt   │  │   Progress  │  │ • OrderBook │            │  │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘            │  │
+│  │                                                               │  │
+│  │  ┌──────────────────────────┐  ┌──────────────────────────┐   │  │
+│  │  │     ethereum.rs          │  │      bitcoin.rs          │   │  |
+│  │  │                          │  │                          │   │  |
+│  │  │ • Threshold ECDSA        │  │ • Threshold Schnorr      │   │  |
+│  │  │ • EIP-1559 Transactions  │  │ • UTXO Management        │   │  |  
+│  │  │ • Uniswap Integration    │  │ • Transaction Building   │   │  |
+│  │  └──────────────────────────┘  └──────────────────────────┘   │  │
+│  └───────────────────────────────────────────────────────────────┘  │
 │                                                                     │
-│  ┌───────────────────────────────────────────────────────────────┐ │
-│  │              vetkeys_engine (Encryption Canister)             │ │
-│  │                                                               │ │
-│  │  • get_encryption_public_key() → Master public key           │ │
-│  │  • derive_round_key(round_id) → Timelock-based key           │ │
-│  │  • derive_user_key(principal) → User-specific key            │ │
-│  │                                                               │ │
-│  │  Production: Uses ICP vetKD API (BLS12-381 threshold)        │ │
-│  └───────────────────────────────────────────────────────────────┘ │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │              vetkeys_engine (Encryption Canister)             │  │
+│  │                                                               │  │
+│  │  • get_encryption_public_key() → Master public key            │  │
+│  │  • derive_round_key(round_id) → Timelock-based key            │  │
+│  │  • derive_user_key(principal) → User-specific key             │  │
+│  │                                                               │  │
+│  │  Production: Uses ICP vetKD API (BLS12-381 threshold)         │  │
+│  └───────────────────────────────────────────────────────────────┘  │
 │                                                                     │
-│  ┌───────────────────────────────────────────────────────────────┐ │
-│  │          internet_identity (Authentication Canister)          │ │
-│  │                                                               │ │
-│  │  • WebAuthn / Passkey authentication                          │ │
-│  │  • Returns Principal + Identity                               │ │
-│  │  • Session management                                         │ │
-│  └───────────────────────────────────────────────────────────────┘ │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │          internet_identity (Authentication Canister)          │  │
+│  │                                                               │  │
+│  │  • WebAuthn / Passkey authentication                          │  │
+│  │  • Returns Principal + Identity                               │  │
+│  │  • Session management                                         │  │
+│  └───────────────────────────────────────────────────────────────┘  │
 └────────────────────────────┬────────────────────────────────────────┘
                              │
                              │ Threshold Cryptography
@@ -87,14 +87,14 @@
 │                      (External Blockchains)                         │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│  ┌────────────────────────┐          ┌────────────────────────┐    │
-│  │   Bitcoin Network      │          │   Ethereum Network     │    │
-│  │                        │          │                        │    │
-│  │  • Threshold Schnorr   │          │  • Threshold ECDSA     │    │
-│  │  • Native BTC Control  │          │  • Native ETH Control  │    │
-│  │  • UTXO Management     │          │  • EIP-1559 Txs        │    │
-│  │  • No Bridges          │          │  • Uniswap Swaps       │    │
-│  └────────────────────────┘          └────────────────────────┘    │
+│  ┌────────────────────────┐          ┌────────────────────────┐     │
+│  │   Bitcoin Network      │          │   Ethereum Network     │     │
+│  │                        │          │                        │     │
+│  │  • Threshold Schnorr   │          │  • Threshold ECDSA     │     │
+│  │  • Native BTC Control  │          │  • Native ETH Control  │     │
+│  │  • UTXO Management     │          │  • EIP-1559 Txs        │     │
+│  │  • No Bridges          │          │  • Uniswap Swaps       │     │
+│  └────────────────────────┘          └────────────────────────┘     │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -254,7 +254,7 @@
          │                     │                      │
          │  execute_btc_       │                      │
          │  settlement()       │                      │
-         │────────────────────────────────────────────>│
+         │───────────────────────────────────────────>│
          │                     │                      │
          │                     │              1. Get BTC address
          │                     │              (threshold Schnorr)
@@ -300,7 +300,7 @@
      │                      │                    │                 │
      │                      │  Notify frontend   │                 │
      │                      │  (via polling)     │                 │
-     │                      │───────────────────────────────────────>│
+     │                      │─────────────────────────────────────>│
      │                      │                    │                 │
      │                      │                    │  Display Results
      │                      │                    │  • Clearing Price
@@ -318,50 +318,50 @@
 │                    (Persists Across Upgrades)                       │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│  ┌───────────────────────────────────────────────────────────────┐ │
-│  │  ORDERS: StableBTreeMap<OrderId, Order>                       │ │
-│  │                                                               │ │
-│  │  Key: u64 (order_id)                                          │ │
-│  │  Value: Order {                                               │ │
-│  │    id, round_id, owner, order_type,                           │ │
-│  │    asset, amount, price_limit,                                │ │
-│  │    encrypted_payload, commitment_hash                         │ │
-│  │  }                                                            │ │
-│  │                                                               │ │
-│  │  Indexed by: order_id, round_id, owner                        │ │
-│  └───────────────────────────────────────────────────────────────┘ │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │  ORDERS: StableBTreeMap<OrderId, Order>                       │  │
+│  │                                                               │  │
+│  │  Key: u64 (order_id)                                          │  │
+│  │  Value: Order {                                               │  │
+│  │    id, round_id, owner, order_type,                           │  │
+│  │    asset, amount, price_limit,                                │  │
+│  │    encrypted_payload, commitment_hash                         │  │
+│  │  }                                                            │  │
+│  │                                                               │  │
+│  │  Indexed by: order_id, round_id, owner                        │  │
+│  └───────────────────────────────────────────────────────────────┘  │
 │                                                                     │
-│  ┌───────────────────────────────────────────────────────────────┐ │
-│  │  RESULTS: StableBTreeMap<RoundId, ClearingResult>            │ │
-│  │                                                               │ │
-│  │  Key: u64 (round_id)                                          │ │
-│  │  Value: ClearingResult {                                      │ │
-│  │    round_id, clearing_price,                                  │ │
-│  │    total_volume, total_surplus,                               │ │
-│  │    matches: Vec<OrderMatch>,                                  │ │
-│  │    timestamp                                                  │ │
-│  │  }                                                            │ │
-│  └───────────────────────────────────────────────────────────────┘ │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │  RESULTS: StableBTreeMap<RoundId, ClearingResult>             │  │
+│  │                                                               │  │
+│  │  Key: u64 (round_id)                                          │  │
+│  │  Value: ClearingResult {                                      │  │
+│  │    round_id, clearing_price,                                  │  │
+│  │    total_volume, total_surplus,                               │  │
+│  │    matches: Vec<OrderMatch>,                                  │  │
+│  │    timestamp                                                  │  │
+│  │  }                                                            │  │
+│  └───────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────┘
 
-┌─────────────────────────────────────────────────────────────────────┐
-│                         HEAP MEMORY                                 │
-│                    (Cached, Rebuilt on Upgrade)                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
+┌────────────────────────────────────────────────────────────────────┐
+│                         HEAP MEMORY                                │
+│                    (Cached, Rebuilt on Upgrade)                    │
+├────────────────────────────────────────────────────────────────────┤
+│                                                                    │
 │  ┌───────────────────────────────────────────────────────────────┐ │
 │  │  STATE: RefCell<State>                                        │ │
 │  │                                                               │ │
 │  │  • round_id: u64                                              │ │
-│  │  • round_state: RoundState (enum)                            │ │
+│  │  • round_state: RoundState (enum)                             │ │
 │  │  • round_start_time: u64                                      │ │
 │  │  • round_duration_ns: u64                                     │ │
 │  │  • next_order_id: u64                                         │ │
 │  │  • clearing_price_history: Vec<u64>                           │ │
 │  └───────────────────────────────────────────────────────────────┘ │
-│                                                                     │
+│                                                                    │
 │  ┌───────────────────────────────────────────────────────────────┐ │
-│  │  USER_STATS: HashMap<Principal, UserStats>                   │ │
+│  │  USER_STATS: HashMap<Principal, UserStats>                    │ │
 │  │                                                               │ │
 │  │  Key: Principal (user identity)                               │ │
 │  │  Value: UserStats {                                           │ │
@@ -369,9 +369,9 @@
 │  │    total_surplus, rounds_participated                         │ │
 │  │  }                                                            │ │
 │  └───────────────────────────────────────────────────────────────┘ │
-│                                                                     │
+│                                                                    │
 │  ┌───────────────────────────────────────────────────────────────┐ │
-│  │  DEMO_BALANCES: HashMap<Principal, DemoUserBalance>          │ │
+│  │  DEMO_BALANCES: HashMap<Principal, DemoUserBalance>           │ │
 │  │                                                               │ │
 │  │  Key: Principal                                               │ │
 │  │  Value: DemoUserBalance {                                     │ │
@@ -379,7 +379,7 @@
 │  │    usd_free, usd_locked                                       │ │
 │  │  }                                                            │ │
 │  └───────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -391,16 +391,16 @@
 │                      CRYPTOGRAPHIC SECURITY                         │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│  Layer 1: Timelock Encryption (vetKeys)                            │
-│  ┌─────────────────────────────────────────────────────────┐       │
+│  Layer 1: Timelock Encryption (vetKeys)                             │
+│  ┌────────────────────────────────────────────────────────-─┐       │
 │  │  • Orders encrypted with future timestamp                │       │
 │  │  • Threshold network enforces decryption timing          │       │
 │  │  • Cannot decrypt before timelock expires                │       │
 │  │  • No single party (including canister) can decrypt early│       │
-│  └─────────────────────────────────────────────────────────┘       │
+│  └────────────────────────────────────────────────────────-─┘       │
 │                                                                     │
-│  Layer 2: Commitment Scheme                                        │
-│  ┌─────────────────────────────────────────────────────────┐       │
+│  Layer 2: Commitment Scheme                                         │
+│  ┌────────────────────────────────────────────────────────-─┐       │
 │  │  At Submission:                                          │       │
 │  │    commitment_hash = SHA256(order_data)                  │       │
 │  │                                                          │       │
@@ -408,23 +408,23 @@
 │  │    verify(decrypted_data) == commitment_hash             │       │
 │  │                                                          │       │
 │  │  Prevents: Order tampering after submission              │       │
-│  └─────────────────────────────────────────────────────────┘       │
+│  └──────────────────────────────────────────────────────-───┘       │
 │                                                                     │
-│  Layer 3: Threshold Signatures                                     │
-│  ┌─────────────────────────────────────────────────────────┐       │
+│  Layer 3: Threshold Signatures                                      │
+│  ┌───────────────────────────────────────────────────────-──┐       │
 │  │  • Bitcoin: Threshold Schnorr (chain-key)                │       │
 │  │  • Ethereum: Threshold ECDSA (chain-key)                 │       │
 │  │  • No single node controls private keys                  │       │
 │  │  • Subnet consensus required for signing                 │       │
-│  └─────────────────────────────────────────────────────────┘       │
+│  └──────────────────────────────────────────────────────-───┘       │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                      APPLICATION SECURITY                           │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│  Layer 4: Escrow & Fund Locking                                    │
-│  ┌─────────────────────────────────────────────────────────┐       │
+│  Layer 4: Escrow & Fund Locking                                     │
+│  ┌─────────────────────────────────────────────────────-────┐       │
 │  │  At Order Submission:                                    │       │
 │  │    • Lock required funds in DEMO_BALANCES                │       │
 │  │    • Buy: Lock (amount × price_limit) USD                │       │
@@ -436,23 +436,23 @@
 │  │    • Refund surplus to users                             │       │
 │  │                                                          │       │
 │  │  Prevents: Double-spending, insufficient funds           │       │
-│  └─────────────────────────────────────────────────────────┘       │
+│  └─────────────────────────────────────────────────────-────┘       │
 │                                                                     │
-│  Layer 5: Access Control                                           │
-│  ┌─────────────────────────────────────────────────────────┐       │
+│  Layer 5: Access Control                                            │
+│  ┌────────────────────────────────────────────────────-─────┐       │
 │  │  • Internet Identity authentication required             │       │
 │  │  • Only order owner can view their plaintext orders      │       │
 │  │  • Admin functions restricted to canister controller     │       │
 │  │  • Query calls vs Update calls separation                │       │
-│  └─────────────────────────────────────────────────────────┘       │
+│  └──────────────────────────────────────────────────────-───┘       │
 │                                                                     │
-│  Layer 6: State Integrity                                          │
-│  ┌─────────────────────────────────────────────────────────┐       │
+│  Layer 6: State Integrity                                           │
+│  ┌────────────────────────────────────────────────────-─────┐       │
 │  │  • Stable storage persists across upgrades               │       │
 │  │  • Round state machine enforced                          │       │
 │  │  • Atomic state transitions                              │       │
 │  │  • Rollback on errors                                    │       │
-│  └─────────────────────────────────────────────────────────┘       │
+│  └──────────────────────────────────────────────────────-───┘       │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -464,36 +464,36 @@
 ┌─────────────────────────────────────────────────────────────────────┐
 │                            lib.rs                                   │
 │                      (Main Orchestrator)                            │
-└────────┬─────────────────────────────────────────────────┬──────────┘
-         │                                                 │
+└────────┬────────────────────────────────────────────────┬─-─────────┘
+         │                                                │
          ├──> types.rs (Data Structures)                  │
          │    • Order, ClearingResult, State              │
          │    • RoundState enum, UserStats                │
-         │                                                 │
+         │                                                │
          ├──> auction.rs (Price Discovery)                │
          │    • find_clearing_price_and_match()           │
          │    • Supply/demand curve calculation           │
-         │                                                 │
+         │                                                │
          ├──> encryption.rs (vetKeys Bridge) ─────────────┼─────┐
          │    • get_encryption_public_key()               │     │
          │    • derive_round_decryption_key()             │     │
          │    • decrypt_order_batch()                     │     │
-         │                                                 │     │
+         │                                                │     │
          ├──> timers.rs (Automation)                      │     │
          │    • start_round_timer()                       │     │
          │    • check_and_progress_round()                │     │
          │    • auto_start_next_round()                   │     │
-         │                                                 │     │
+         │                                                │     │
          ├──> queries.rs (Data Access)                    │     │
          │    • get_user_orders()                         │     │
          │    • get_round_leaderboard()                   │     │
          │    • get_order_book_summary()                  │     │
-         │                                                 │     │
+         │                                                │     │
          ├──> ethereum.rs (Chain Fusion - ETH)            │     │
          │    • get_eth_address()                         │     │
          │    • sign_eth_transaction()                    │     │
          │    • execute_eth_settlement()                  │     │
-         │                                                 │     │
+         │                                                │     │
          └──> bitcoin.rs (Chain Fusion - BTC)             │     │
               • get_btc_address()                         │     │
               • sign_btc_transaction()                    │     │
